@@ -69946,11 +69946,6 @@ import_dotenv.default.config({
   path: import_path37.default.resolve(__dirname, "../.env")
 });
 var deepSeekmodels = {
-  deepseekR1: new ChatOpenAI({
-    apiKey: process.env.DEEPSEEK_API_KEY,
-    model: "deepseek-r1-250528",
-    configuration: { baseURL: process.env.DEEPSEEK_BASE_URL }
-  }),
   // 非思考模式
   deepseekChat: new ChatOpenAI({
     apiKey: process.env.DEEPSEEK_API_KEY,
@@ -69981,7 +69976,8 @@ var getModels = () => {
   for (const key in modelList) {
     const modelInstance = modelList[key];
     models.push({
-      name: modelInstance.model
+      name: modelInstance.model,
+      label: modelInstance.model === "deepseek-chat" || "deepseek-reasoner" ? "deepseek" : modelInstance.model
     });
   }
   return models;
