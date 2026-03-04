@@ -69971,13 +69971,21 @@ var getModelByName = (name) => {
 // src/modules/index.ts
 var modelName = "deepseekReasoner";
 var defaultModel = getModelByName(modelName);
-var defaultModelConfig = {
-  "deepseekReasoner": "deepseek-v3"
-};
+var modelList = deepSeekmodels;
 var agent = createAgent({
   model: defaultModel,
   tools: []
 });
+var getModels = () => {
+  let models = [];
+  for (const key in modelList) {
+    const modelInstance = modelList[key];
+    models.push({
+      name: modelInstance.model
+    });
+  }
+  return models;
+};
 var modules_default = agent;
 
 // src/chat/index.ts
@@ -70014,14 +70022,22 @@ var ChatUiProvider = class {
     webviewView.webview.onDidReceiveMessage(async (message) => {
       const { command } = message;
       const config2 = {
+        "webview-ready": (message2) => this.handleInit(message2),
         "chat-request": (message2) => this.handleChatRequest(message2)
       };
       config2[command]?.(message);
     });
+  }
+  /**
+   * webview初始化ide发送给webview的config数据
+   * @param message 
+   */
+  async handleInit(message) {
     this.sendMessageToWebView({
       command: "config-response",
       data: {
-        currentModel: defaultModelConfig[modelName]
+        currentModel: defaultModel.model,
+        modelList: getModels()
       }
     });
   }

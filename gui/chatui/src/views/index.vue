@@ -23,7 +23,10 @@ const chatRequest = (userMessage: string) => {
 }
 
 const configResponse = (data: any) => {
-  chatStore.currentModel.name = data.currentModel
+  chatStore.currentModel.name = data.currentModel;
+  chatStore.pushModelList(data.modelList);
+  console.log(chatStore.modelList,'接受到的modelList');
+  
 }
 const chatResponse = (data: any) => {
   chatStore.messagesList.push({

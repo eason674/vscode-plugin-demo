@@ -1,0 +1,11 @@
+
+ .arco-trigger-popup .arco-select-dropdown {
+    background: var(--vscode-editorWidget-background);
+    color: var(--vscode-editor-foreground);
+}
+
+ .arco-trigger-popup .arco-select-dropdown .arco-select-option {
+    color: var(--vscode-editor-foreground);
+    background: var(--vscode-editorWidget-background);
+
+}
