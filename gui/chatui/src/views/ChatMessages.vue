@@ -20,8 +20,10 @@ const messagesList = computed(() => chatStore.messagesList)
 
 <style>
 .chat-messages-contaier {
+  padding: 0 10px;
   flex: 1;
   width: 100%;
   height: calc(100vh - 150px);
+  /* background: var(--vscode-); */
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
   <div class="user-message-container">
-    <div>我</div>
+    <div class="title">我</div>
     <div class="_text">{{ item.content }}</div>
   </div>
 </template>
@@ -19,6 +19,14 @@ console.log(props.item,'item');
 
 <style >
 .user-message-container {
+  padding: 0 10px ;
+  background: var( --vscode-activityBar-background);
+  border-radius: 5px;
+  .title {
+    font-weight: 600;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--vscode-editorWidget-border);
+  }
  ._text{
     padding: 10px 0;
  }
