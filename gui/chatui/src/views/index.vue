@@ -23,11 +23,17 @@ const chatRequest = (userMessage: string) => {
 }
 
 const configResponse = (data: any) => {
-  chatStore.currentModel = data.currentModel
+  chatStore.currentModel.name = data.currentModel
+}
+const chatResponse = (data: any) => {
+  chatStore.messagesList.push({
+    role: 'ai',
+    content: data.content,
+  })
 }
 
 const responseCommandConfig: any = {
-  'chat-response': () => {},
+  'chat-response': chatResponse,
   'config-response': configResponse,
 }
 const handleMessage = (event: any) => {

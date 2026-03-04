@@ -69990,7 +69990,8 @@ var Agent = class {
   }
   response(result) {
     console.log("\u54CD\u5E94\u5904\u7406", result);
-    return result;
+    const lastMessage = result.messages.at(-1);
+    return lastMessage.content;
   }
 };
 
@@ -70029,7 +70030,7 @@ var ChatUiProvider = class {
     this.sendMessageToWebView({
       command: "chat-response",
       data: {
-        result
+        content: result
       }
     });
   }
