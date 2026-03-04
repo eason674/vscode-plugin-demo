@@ -19,6 +19,7 @@ console.log(props.item,'item');
 
 <style >
 .user-message-container {
+  margin: 10px 0 0 0;
   padding: 0 10px ;
   background: var( --vscode-activityBar-background);
   border-radius: 5px;

@@ -24,6 +24,7 @@ const messagesList = computed(() => chatStore.messagesList)
   flex: 1;
   width: 100%;
   height: calc(100vh - 130px);
-  /* background: var(--vscode-); */
+  overflow: auto;
+  margin: 0 0 10px 0;
 }
 </style>
