@@ -59,8 +59,6 @@ const handleKeyDown = (event: KeyboardEvent) => {
   }
 }
 const handleChangeModel=(model:string)=>{
-  console.log('只有一次吧？',model);
-  
   sendMessage({
     command:'change-model-request',
     data:{
