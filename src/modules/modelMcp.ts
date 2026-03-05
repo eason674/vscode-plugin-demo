@@ -32,6 +32,12 @@ export class ModelMcp {
       fetch: {
         command: "npx",
         args: ["-y", "@tokenizin/mcp-npx-fetch"],
+        // 添加重启设置
+        restart: {
+          enabled: true,
+          maxAttempts: 3,
+          delayMs: 3000, // 增加重试延迟
+        },
       },
     });
     // await this._client.initializeConnections();

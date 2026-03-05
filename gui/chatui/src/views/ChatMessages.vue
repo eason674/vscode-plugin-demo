@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-messages-contaier">
+  <div class="chat-messages-contaier"  ref="messageContainerRef">
     <template v-if="chatStore.messagesList.length">
       <template v-for="item in messagesList">
         <UserMessage :item="item" v-if="item.role == 'user'"></UserMessage>
@@ -13,13 +13,29 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch, nextTick, ref } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import UserMessage from '@/components/UserMessage.vue'
 import ModelMessage from '@/components/ModelMessage.vue'
 import IndexChangeLog from './IndexChangeLog.vue'
+
 const chatStore = useChatStore()
 const messagesList = computed(() => chatStore.messagesList)
+const messageContainerRef = ref<HTMLElement>()
+
+// 监听消息列表变化，自动滚动到底部
+watch(messagesList, async () => {
+  // 等待DOM更新完成
+  await nextTick() 
+  scrollToBottom()
+}, { deep: true, immediate: true })
+
+// 滚动到底部函数
+const scrollToBottom = () => {
+  if (messageContainerRef.value) {
+    messageContainerRef.value.scrollTop = messageContainerRef.value.scrollHeight
+  }
+}
 </script>
 
 <style>
