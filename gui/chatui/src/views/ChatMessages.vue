@@ -12,7 +12,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import UserMessage from '@/components/UserMessage.vue'
