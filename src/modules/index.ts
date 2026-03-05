@@ -1,118 +1,44 @@
-import { createAgent } from "langchain"; // 补全完整导入路径，避免歧义
-import { deepSeekmodels, getModelByName } from "./deepseek";
-import type { ChatOpenAI } from "@langchain/openai";
-// import { allTools, initMcp } from "./Mcp";
-import { MultiServerMCPClient } from "@langchain/mcp-adapters";
-import vscode from "vscode";
-import { allTools, initMcp } from "./Mcp";
+import { ChatOpenAI } from "@langchain/openai";
+import { IModels } from "./types";
+import dotenv from "dotenv";
+import path from "path";
 
+dotenv.config({
+  path: path.resolve(__dirname, "../.env"),
+});
 
-/** 默认模型名称 */
-export const modelName = "GLM";
-
-/** 当前激活的模型实例（标注可空类型，避免未赋值使用） */
-export let currentModel: ChatOpenAI | undefined | any =
-  getModelByName(modelName);
-
-/** Agent实例（延迟初始化，确保currentModel有效） */
-let agent: any;
-
-
-// const tools = [
-//   {
-//     type: "function",
-//     function: {
-//       name: "get_weather",
-//       description: "获取指定城市的天气信息",
-//       parameters: {
-//         type: "object",
-//         properties: {
-//           location: {
-//             type: "string",
-//             description: "城市名称，例如：北京、上海、广州",
-//           },
-//         },
-//         required: ["location"],
-//       },
-//     },
-//   },
-// ];
-
-/** 初始化Agent（封装逻辑，支持重复调用） */
-const initAgent = async () => {
-  if (!currentModel) {
-    throw new Error(`初始化Agent失败：模型 ${modelName} 未找到或初始化失败`);
-  }
-  await initMcp();
-  let tools = await allTools();
-  agent = createAgent({
-    model: currentModel,
-    tools: tools,
-  });
-  console.log(agent,'agent');
-};
-
-// 首次初始化Agent
-initAgent();
+export let currentModel='glm-4.7'
+/**
+ * 模型列表
+ */
+export const models:IModels[] = [
+  {
+    name: "deepseek-v3",
+    modelName: "deepseek-chat",
+    model: new ChatOpenAI({
+      apiKey: process.env.DEEPSEEK_API_KEY,
+      model: "deepseek-chat",
+      configuration: { baseURL: process.env.DEEPSEEK_BASE_URL },
+    }),
+  },
+  {
+    name: "glm-4.7",
+    modelName: "glm-4.7",
+    model: new ChatOpenAI({
+      apiKey: process.env.GLM_API_KEY,
+      model: "glm-4.7",
+      configuration: { baseURL: process.env.GLM_BASE_URL },
+    }),
+  },
+];
 
 /**
- * 获取格式化的模型列表
- * 修复点：label逻辑错误（原代码中 || 优先级问题导致判断失效）
+ * 
+ * @returns 给前端显示的模型列表
  */
-export const getModels = (): { name: string; label: string }[] => {
-  const models: { name: string; label: string }[] = [];
-  // 确保deepSeekmodels是可遍历的对象/数组
-  const modelEntries = Array.isArray(deepSeekmodels)
-    ? deepSeekmodels.entries()
-    : Object.entries(deepSeekmodels);
-
-  for (const [_, modelInstance] of modelEntries) {
-    if (!modelInstance?.model) continue; // 空值保护
-
-    // 修复||逻辑错误：正确判断是否为deepseek系列模型
-    const isDeepSeekModel =
-      modelInstance.model === "deepseek-chat" ||
-      modelInstance.model === "deepseek-reasoner";
-    models.push({
-      name: modelInstance.model,
-      label: isDeepSeekModel ? "deepseek" : modelInstance.model,
-    });
-  }
-  return models;
-};
-
-/**
- * 切换模型并重建Agent
- * @param newModelName 新模型名称（如 'deepseek-chat'）
- */
-export const switchModel = (newModelName: any) => {
-  try {
-    // 获取新模型实例
-    const newModel = getModelByName(newModelName);
-    if (!newModel) {
-      throw new Error(`模型 ${newModelName} 不存在`);
-    }
-
-    // 更新当前模型
-    currentModel = newModel;
-    // 重建Agent
-    initAgent();
-
-    console.log(`✅ 成功切换到模型：${newModelName}`);
-    return newModel;
-  } catch (error) {
-    console.error(`❌ 切换模型失败：${(error as Error).message}`);
-    throw error; // 抛出错误，让调用方感知
-  }
-};
-
-/** 获取当前有效的Agent实例 */
-export const getAgent = () => {
-  if (!agent) {
-    throw new Error("Agent未初始化，请检查模型配置");
-  }
-  return agent;
-};
-
-// 默认导出（兼容原有用法，添加空值保护）
-export default agent;
+export const getAllModel=()=>{
+  return models.map((item) => ({
+    name: item.name,
+    label: item.modelName,
+  }));
+}

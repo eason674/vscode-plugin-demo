@@ -1,28 +1,27 @@
 import vscode from "vscode";
-import { Agent } from "../../chat/index";
-import { currentModel, switchModel } from "../../modules";
-import { getModels } from "../../modules";
-import { load } from "langchain/load";
-import { getModelByName } from "../../modules/deepseek";
+import { ModelAgent } from "../../modules/modelAgent";
+import { currentModel, getAllModel } from "../../modules";
 import { IDEFROMWEBVIEWREQ, IDETOWEBVIEWREP } from "../../common/idecommand";
 export class ChatUiProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView | any;
   private _context: vscode.ExtensionContext;
-  private _agent: Agent;
+  private _agent: any;
 
   constructor(context: vscode.ExtensionContext) {
     this._context = context;
-    this._agent = new Agent();
+  }
+  private initAgent() {
+    if(!this._agent) {
+     this._agent = new ModelAgent();
+    }
   }
 
   resolveWebviewView(webviewView: vscode.WebviewView) {
     this._view = webviewView;
-
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [this._context.extensionUri],
     };
-
     // const scriptUri = webviewView.webview.asWebviewUri(
     //   vscode.Uri.joinPath(
     //     this._context.extensionUri,
@@ -42,56 +41,55 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
     webviewView.webview.html = this.dev();
     // webviewView.webview.html = this.getHtml(scriptUri, styleUri);
     webviewView.webview.onDidReceiveMessage(async (message) => {
-      const { command ,data} = message;
+      const { command, data } = message;
       const config: any = {
-        [IDEFROMWEBVIEWREQ.WEBVIEW_READY]: (message: any) =>
-          this.handleInit(message),
-        [IDEFROMWEBVIEWREQ.CHAT_REQUEST]: (message: any) =>
-          this.handleChatRequest(message),
-        [IDEFROMWEBVIEWREQ.CHANGE_MODEL_REQUEST]: (message: any) =>
-          this.handleChangeModel(message),
+        [IDEFROMWEBVIEWREQ.WEBVIEW_READY]: (data: any) => this.handleInit(),
+        [IDEFROMWEBVIEWREQ.CHAT_REQUEST]: (data: any) =>
+          this.handleRequest(data),
+        [IDEFROMWEBVIEWREQ.CHANGE_MODEL_REQUEST]: (data: any) =>
+          this.handleChangeModel(data),
       };
-      config[command]?.(message);
+      config[command]?.(data);
     });
   }
 
   /**
    * webview初始化ide发送给webview的config数据
-   * @param message
+   *
    */
-  public async handleInit(message: any) {
+  public async handleInit() {
     this.sendMessageToWebView({
       command: IDETOWEBVIEWREP.CONFIG_RESPONSE,
       data: {
-        currentModel: currentModel.model,
-        modelList: getModels(),
+        currentModel: currentModel,
+        modelList: getAllModel(),
       },
     });
   }
-
-  public async handleChatRequest(message: { data: { userMessage: string } }) {
-    let aiResponseContent = await this._agent.request(message.data.userMessage);
+  /**
+   * 发送请求
+   * @param data
+   */
+  public async handleRequest(data: { content: string } ) {
+    await this.initAgent();
+    let aiResponseContent = await this._agent.invoke(data.content);
+    let model=this._agent.getCurrentModelInfo();
     this.sendMessageToWebView({
       command: IDETOWEBVIEWREP.CHAT_RESPONSE,
       data: {
         content: aiResponseContent,
-        model: currentModel.model,
+        model: model.currentModel
       },
     });
   }
-
-  public async handleChangeModel(message: { data: { model: string } }) {
-    console.log(message.data.model, "message.data.model;");
-    switch (message.data.model) {
-      case "deepseek-chat":
-        switchModel("deepseekChat");
-        break;
-      case "deepseek-reasoner":
-        switchModel("deepseekReasoner");
-        break;
-      default:
-        break;
-    }
+  /**
+   * 切换模型
+   * @param data
+   */
+  public async handleChangeModel(data: { model: string } ) {
+    let newModel = data.model;
+    console.log(newModel, "要切换的model");
+    this._agent.switchModel(newModel);
     // this.sendMessageToWebView({
     //   command: "change-model-response",
     //   data: {

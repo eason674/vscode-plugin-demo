@@ -14,11 +14,11 @@ import { webviewReqCommand } from '@/common/commandname'
 import { onMounted, onUnmounted } from 'vue'
 import type { IMessagesList } from '@/stores/types/chat'
 const chatStore = useChatStore()
-const chatRequest = (userMessage: string) => {
+const chatRequest = (content: string) => {
   sendMessage({
     command: webviewReqCommand.CHAT_REQUEST,
     data: {
-      userMessage,
+      content,
     },
   })
 }
