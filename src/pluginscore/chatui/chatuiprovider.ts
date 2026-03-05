@@ -4,7 +4,7 @@ import { currentModel, switchModel } from "../../modules";
 import { getModels } from "../../modules";
 import { load } from "langchain/load";
 import { getModelByName } from "../../modules/deepseek";
-import { IDEFROMWEBVIEWREQ } from "../../common/idecommand";
+import { IDEFROMWEBVIEWREQ, IDETOWEBVIEWREP } from "../../common/idecommand";
 export class ChatUiProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView | any;
   private _context: vscode.ExtensionContext;
@@ -61,7 +61,7 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
    */
   public async handleInit(message: any) {
     this.sendMessageToWebView({
-      command: "config-response",
+      command: IDETOWEBVIEWREP.CONFIG_RESPONSE,
       data: {
         currentModel: currentModel.model,
         modelList: getModels(),
@@ -72,7 +72,7 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
   public async handleChatRequest(message: { data: { userMessage: string } }) {
     let aiResponseContent = await this._agent.request(message.data.userMessage);
     this.sendMessageToWebView({
-      command: "chat-response",
+      command: IDETOWEBVIEWREP.CHAT_RESPONSE,
       data: {
         content: aiResponseContent,
         model: currentModel.model,
