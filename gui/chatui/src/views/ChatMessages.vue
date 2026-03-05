@@ -2,9 +2,12 @@
   <div class="chat-messages-contaier">
     <template v-if="chatStore.messagesList.length">
       <template v-for="item in messagesList">
-        <UserMessage :item="item" v-if="item.role=='user'"></UserMessage>
-        <ModelMessage v-if="item.role=='ai'" :item="item"></ModelMessage>
+        <UserMessage :item="item" v-if="item.role == 'user'"></UserMessage>
+        <ModelMessage v-if="item.role == 'ai'" :item="item"></ModelMessage>
       </template>
+    </template>
+    <template v-else>
+      <IndexChangeLog></IndexChangeLog>
     </template>
   </div>
 </template>
@@ -14,6 +17,7 @@ import { computed } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import UserMessage from '@/components/UserMessage.vue'
 import ModelMessage from '@/components/ModelMessage.vue'
+import IndexChangeLog from './IndexChangeLog.vue'
 const chatStore = useChatStore()
 const messagesList = computed(() => chatStore.messagesList)
 </script>

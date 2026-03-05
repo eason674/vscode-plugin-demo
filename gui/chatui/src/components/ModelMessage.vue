@@ -1,11 +1,13 @@
 <template>
   <div class="model-message-container">
-    <div class="title">模型：{{ chatStore.currentModel.name }}</div>
-    <div class="_text">{{ item.content }}</div>
+    <div class="title">模型：{{ item.model }}</div>
+    <div class="_text" v-html="responseHtml"></div>
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import {markdownHtml} from '../common/marked'
 import { useChatStore } from '@/stores/chat'
 const chatStore = useChatStore()
 const props = defineProps({
@@ -13,6 +15,9 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+})
+const responseHtml = computed(() => {
+  return markdownHtml(props.item.content)
 })
 </script>
 

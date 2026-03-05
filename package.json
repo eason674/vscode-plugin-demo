@@ -23,7 +23,7 @@
         {
           "id": "webViewContainer",
           "title": "Chat",
-          "icon": "vite.png"
+          "icon": "vite.svg"
         }
       ]
     },

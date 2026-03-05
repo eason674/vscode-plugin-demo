@@ -69965,10 +69965,10 @@ var getModelByName = (name) => {
 
 // src/modules/index.ts
 var modelName = "deepseekReasoner";
-var defaultModel = getModelByName(modelName);
+var currentModel = getModelByName(modelName);
 var modelList = deepSeekmodels;
 var agent = createAgent({
-  model: defaultModel,
+  model: currentModel,
   tools: []
 });
 var getModels = () => {
@@ -70019,7 +70019,8 @@ var ChatUiProvider = class {
       const { command } = message;
       const config2 = {
         "webview-ready": (message2) => this.handleInit(message2),
-        "chat-request": (message2) => this.handleChatRequest(message2)
+        "chat-request": (message2) => this.handleChatRequest(message2),
+        "change-model-request": (message2) => this.handleChangeModel(message2)
       };
       config2[command]?.(message);
     });
@@ -70032,17 +70033,27 @@ var ChatUiProvider = class {
     this.sendMessageToWebView({
       command: "config-response",
       data: {
-        currentModel: defaultModel.model,
+        currentModel: currentModel.model,
         modelList: getModels()
       }
     });
   }
   async handleChatRequest(message) {
-    let result = await this._agent.request(message.data.userMessage);
+    let aiResponseContent = await this._agent.request(message.data.userMessage);
     this.sendMessageToWebView({
       command: "chat-response",
       data: {
-        content: result
+        content: aiResponseContent,
+        model: currentModel.model
+      }
+    });
+  }
+  async handleChangeModel(message) {
+    currentModel.model = message.data.model;
+    this.sendMessageToWebView({
+      command: "change-model-response",
+      data: {
+        model: currentModel.model
       }
     });
   }

@@ -1,11 +1,38 @@
-
- .arco-trigger-popup .arco-select-dropdown {
-    background: var(--vscode-editorWidget-background);
-    color: var(--vscode-editor-foreground);
+.arco-trigger-popup .arco-select-dropdown {
+  background: var(--vscode-editorWidget-background);
+  color: var(--vscode-editor-foreground);
 }
 
- .arco-trigger-popup .arco-select-dropdown .arco-select-option {
-    color: var(--vscode-editor-foreground);
-    background: var(--vscode-editorWidget-background);
+.arco-trigger-popup .arco-select-dropdown .arco-select-option {
+  color: var(--vscode-editor-foreground);
+  background: var(--vscode-editorWidget-background);
+}
 
+/* 代码样式基础方案 */
+/* 基础代码样式 */
+code {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  background-color: var(--vscode-editorWidget-background);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+/* 代码块样式 */
+pre {
+  background-color: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border);
+  border-radius: 4px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  display: block;
 }
