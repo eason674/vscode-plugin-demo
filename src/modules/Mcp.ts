@@ -40,6 +40,13 @@ export const initMcp = async() => {
     command: "npx",
     args: ["-y", "@modelcontextprotocol/server-filesystem", "."],
   },
+    fetch: {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@tokenizin/mcp-npx-fetch"
+      ]
+    },
 });
 
 await client.initializeConnections();

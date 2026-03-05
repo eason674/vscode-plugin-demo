@@ -12,6 +12,7 @@ import ChatMessages from './ChatMessages.vue'
 import { sendMessage } from '@/common/vscode'
 import { webviewReqCommand } from '@/common/commandname'
 import { onMounted, onUnmounted } from 'vue'
+import type { IMessagesList } from '@/stores/types/chat'
 const chatStore = useChatStore()
 const chatRequest = (userMessage: string) => {
   sendMessage({
@@ -26,9 +27,15 @@ const configResponse = (data: any) => {
   chatStore.currentModel.name = data.currentModel;
   chatStore.pushModelList(data.modelList);
 }
+const reset=()=>{
+  chatStore.updateWaiting(false)
+}
+
 const chatResponse = (data: any) => {
+  // 初始化
+  reset()
   // 创建一个新的消息对象用于打字机效果
-  const newMessage = {
+  const newMessage: IMessagesList = {
     role: 'ai',
     content: '',
     model: data.model,

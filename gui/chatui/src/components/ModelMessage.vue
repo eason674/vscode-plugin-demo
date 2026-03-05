@@ -7,9 +7,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import {markdownHtml} from '../common/marked'
-import { useChatStore } from '@/stores/chat'
-const chatStore = useChatStore()
+import { markdownHtml } from '../common/marked'
 const props = defineProps({
   item: {
     type: Object,

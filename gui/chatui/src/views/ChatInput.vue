@@ -36,7 +36,15 @@ const pushMessages = () => {
 const handleEnter = () => {
   pushMessages()
   emits('enter', inputValue.value)
-  inputValue.value = ''
+  waitingInit()
+}
+
+/**
+ * 模型正在生成中，需要做的init操作
+ */
+const waitingInit=()=>{
+inputValue.value = '';
+chatStore.updateWaiting(true)
 }
 const handleKeyDown = (event: KeyboardEvent) => {
   switch (event.key) {

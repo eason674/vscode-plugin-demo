@@ -90625,6 +90625,13 @@ var initMcp = async () => {
       transport: "stdio",
       command: "npx",
       args: ["-y", "@modelcontextprotocol/server-filesystem", "."]
+    },
+    fetch: {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@tokenizin/mcp-npx-fetch"
+      ]
     }
   });
   await client2.initializeConnections();
