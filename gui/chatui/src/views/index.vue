@@ -27,11 +27,32 @@ const configResponse = (data: any) => {
   chatStore.pushModelList(data.modelList);
 }
 const chatResponse = (data: any) => {
-  chatStore.messagesList.push({
+  // 创建一个新的消息对象用于打字机效果
+  const newMessage = {
     role: 'ai',
-    content: data.content,
+    content: '',
     model: data.model,
-  })
+  };
+  chatStore.messagesList.push(newMessage);
+  const messageIndex = chatStore.messagesList.length - 1;
+
+  // 获取完整内容并逐步添加到当前消息
+  const fullText = data.content;
+  let currentIndex = 0;
+  
+  // 打字机效果
+  const typewriterInterval = setInterval(() => {
+    if (currentIndex < fullText.length) {
+      // 更新消息内容
+      newMessage.content = fullText.substring(0, currentIndex + 1);
+      // 通过替换数组中的元素来触发响应式更新
+      chatStore.messagesList[messageIndex] = {...newMessage};
+      currentIndex++;
+    } else {
+      // 完成后清除定时器
+      clearInterval(typewriterInterval);
+    }
+  }, 30); // 每30毫秒添加一个字符
 }
 
 const responseCommandConfig: any = {

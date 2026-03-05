@@ -1,25 +1,55 @@
 import { createAgent } from "langchain"; // 补全完整导入路径，避免歧义
 import { deepSeekmodels, getModelByName } from "./deepseek";
-import type { ChatOpenAI } from "@langchain/openai"; // 引入类型，提升类型安全
+import type { ChatOpenAI } from "@langchain/openai";
+// import { allTools, initMcp } from "./Mcp";
+import { MultiServerMCPClient } from "@langchain/mcp-adapters";
+import vscode from "vscode";
+import { allTools, initMcp } from "./Mcp";
+
 
 /** 默认模型名称 */
-export const modelName = "deepseekReasoner";
+export const modelName = "deepseekChat";
 
 /** 当前激活的模型实例（标注可空类型，避免未赋值使用） */
-export let currentModel: ChatOpenAI | undefined | any= getModelByName(modelName);
+export let currentModel: ChatOpenAI | undefined | any =
+  getModelByName(modelName);
 
 /** Agent实例（延迟初始化，确保currentModel有效） */
-let agent: ReturnType<typeof createAgent> | undefined | any;
+let agent: any;
+
+
+// const tools = [
+//   {
+//     type: "function",
+//     function: {
+//       name: "get_weather",
+//       description: "获取指定城市的天气信息",
+//       parameters: {
+//         type: "object",
+//         properties: {
+//           location: {
+//             type: "string",
+//             description: "城市名称，例如：北京、上海、广州",
+//           },
+//         },
+//         required: ["location"],
+//       },
+//     },
+//   },
+// ];
 
 /** 初始化Agent（封装逻辑，支持重复调用） */
-const initAgent = () => {
+const initAgent = async () => {
   if (!currentModel) {
     throw new Error(`初始化Agent失败：模型 ${modelName} 未找到或初始化失败`);
   }
+  await initMcp();
+  let tools = await allTools();
   agent = createAgent({
     model: currentModel,
-    tools: [],
+    tools: tools,
   });
+  console.log(agent,'agent');
 };
 
 // 首次初始化Agent
@@ -32,18 +62,20 @@ initAgent();
 export const getModels = (): { name: string; label: string }[] => {
   const models: { name: string; label: string }[] = [];
   // 确保deepSeekmodels是可遍历的对象/数组
-  const modelEntries = Array.isArray(deepSeekmodels) 
-    ? deepSeekmodels.entries() 
+  const modelEntries = Array.isArray(deepSeekmodels)
+    ? deepSeekmodels.entries()
     : Object.entries(deepSeekmodels);
 
   for (const [_, modelInstance] of modelEntries) {
     if (!modelInstance?.model) continue; // 空值保护
-    
+
     // 修复||逻辑错误：正确判断是否为deepseek系列模型
-    const isDeepSeekModel = modelInstance.model === 'deepseek-chat' || modelInstance.model === 'deepseek-reasoner';
+    const isDeepSeekModel =
+      modelInstance.model === "deepseek-chat" ||
+      modelInstance.model === "deepseek-reasoner";
     models.push({
       name: modelInstance.model,
-      label: isDeepSeekModel ? 'deepseek' : modelInstance.model,
+      label: isDeepSeekModel ? "deepseek" : modelInstance.model,
     });
   }
   return models;
@@ -65,7 +97,7 @@ export const switchModel = (newModelName: any) => {
     currentModel = newModel;
     // 重建Agent
     initAgent();
-    
+
     console.log(`✅ 成功切换到模型：${newModelName}`);
     return newModel;
   } catch (error) {
