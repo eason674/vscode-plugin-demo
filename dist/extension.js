@@ -90728,6 +90728,13 @@ var Agent = class {
   }
 };
 
+// src/common/idecommand.ts
+var IDEFROMWEBVIEWREQ = {
+  WEBVIEW_READY: "webview-ready",
+  CHAT_REQUEST: "chat-request",
+  CHANGE_MODEL_REQUEST: "change-model-request"
+};
+
 // src/pluginscore/chatui/chatuiprovider.ts
 var ChatUiProvider = class {
   _view;
@@ -90745,18 +90752,18 @@ var ChatUiProvider = class {
     };
     webviewView.webview.html = this.dev();
     webviewView.webview.onDidReceiveMessage(async (message) => {
-      const { command } = message;
+      const { command, data } = message;
       const config2 = {
-        "webview-ready": (message2) => this.handleInit(message2),
-        "chat-request": (message2) => this.handleChatRequest(message2),
-        "change-model-request": (message2) => this.handleChangeModel(message2)
+        [IDEFROMWEBVIEWREQ.WEBVIEW_READY]: (message2) => this.handleInit(message2),
+        [IDEFROMWEBVIEWREQ.CHAT_REQUEST]: (message2) => this.handleChatRequest(message2),
+        [IDEFROMWEBVIEWREQ.CHANGE_MODEL_REQUEST]: (message2) => this.handleChangeModel(message2)
       };
       config2[command]?.(message);
     });
   }
   /**
    * webview初始化ide发送给webview的config数据
-   * @param message 
+   * @param message
    */
   async handleInit(message) {
     this.sendMessageToWebView({

@@ -1,10 +1,10 @@
 import vscode from "vscode";
 import { Agent } from "../../chat/index";
-import { currentModel, switchModel,  } from "../../modules";
+import { currentModel, switchModel } from "../../modules";
 import { getModels } from "../../modules";
 import { load } from "langchain/load";
 import { getModelByName } from "../../modules/deepseek";
-
+import { IDEFROMWEBVIEWREQ } from "../../common/idecommand";
 export class ChatUiProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView | any;
   private _context: vscode.ExtensionContext;
@@ -40,14 +40,16 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
     //   ),
     // );
     webviewView.webview.html = this.dev();
-
     // webviewView.webview.html = this.getHtml(scriptUri, styleUri);
     webviewView.webview.onDidReceiveMessage(async (message) => {
-      const { command } = message;
+      const { command ,data} = message;
       const config: any = {
-        "webview-ready":(message: any)=>this.handleInit(message),
-        "chat-request": (message: any) => this.handleChatRequest(message),
-        "change-model-request": (message: any) => this.handleChangeModel(message),
+        [IDEFROMWEBVIEWREQ.WEBVIEW_READY]: (message: any) =>
+          this.handleInit(message),
+        [IDEFROMWEBVIEWREQ.CHAT_REQUEST]: (message: any) =>
+          this.handleChatRequest(message),
+        [IDEFROMWEBVIEWREQ.CHANGE_MODEL_REQUEST]: (message: any) =>
+          this.handleChangeModel(message),
       };
       config[command]?.(message);
     });
@@ -55,16 +57,16 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
 
   /**
    * webview初始化ide发送给webview的config数据
-   * @param message 
+   * @param message
    */
   public async handleInit(message: any) {
     this.sendMessageToWebView({
       command: "config-response",
-      data:{
-        currentModel:currentModel.model,
-        modelList:getModels(),
-      }
-    })
+      data: {
+        currentModel: currentModel.model,
+        modelList: getModels(),
+      },
+    });
   }
 
   public async handleChatRequest(message: { data: { userMessage: string } }) {
@@ -72,20 +74,20 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
     this.sendMessageToWebView({
       command: "chat-response",
       data: {
-        content:aiResponseContent,
-        model:currentModel.model,
+        content: aiResponseContent,
+        model: currentModel.model,
       },
     });
   }
 
   public async handleChangeModel(message: { data: { model: string } }) {
-    console.log(message.data.model,'message.data.model;');
-    switch(message.data.model){
-      case 'deepseek-chat':
-        switchModel("deepseekChat")
-        break
-      case 'deepseek-reasoner':
-        switchModel("deepseekReasoner")
+    console.log(message.data.model, "message.data.model;");
+    switch (message.data.model) {
+      case "deepseek-chat":
+        switchModel("deepseekChat");
+        break;
+      case "deepseek-reasoner":
+        switchModel("deepseekReasoner");
         break;
       default:
         break;
