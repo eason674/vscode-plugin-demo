@@ -1,4 +1,5 @@
-    --vscode-font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+   :root {
+   --vscode-font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     --vscode-font-weight: normal;
     --vscode-font-size: 13px;
     --vscode-editor-font-family: Menlo, Monaco, 'Courier New', monospace;
@@ -846,3 +847,4 @@
     --vscode-gitlens-launchpadIndicatorAttentionColor: #d8af1b;
     --vscode-gitlens-launchpadIndicatorAttentionHoverColor: #d8af1b;
     --vscode-editor-font-feature-settings: "liga" off, "calt" off;
+   }
