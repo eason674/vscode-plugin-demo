@@ -27,3 +27,9 @@ pnpm-debug.log*
 # 操作系统文件
 .DS_Store
 Thumbs.db
+
+# config 配置文件
+.config.ts
+
+# 其他待配置文件
+src/modules/indexConfig.ts

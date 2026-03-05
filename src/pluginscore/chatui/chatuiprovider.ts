@@ -1,7 +1,9 @@
 import vscode from "vscode";
 import { Agent } from "../../chat/index";
-import { currentModel } from "../../modules";
+import { currentModel, switchModel,  } from "../../modules";
 import { getModels } from "../../modules";
+import { load } from "langchain/load";
+import { getModelByName } from "../../modules/deepseek";
 
 export class ChatUiProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView | any;
@@ -77,14 +79,23 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
   }
 
   public async handleChangeModel(message: { data: { model: string } }) {
-    
-    currentModel.model = message.data.model;
-    this.sendMessageToWebView({
-      command: "change-model-response",
-      data: {
-        model:currentModel.model,
-      },
-    });
+    console.log(message.data.model,'message.data.model;');
+    switch(message.data.model){
+      case 'deepseek-chat':
+        switchModel("deepseekChat")
+        break
+      case 'deepseek-reasoner':
+        switchModel("deepseekReasoner")
+        break;
+      default:
+        break;
+    }
+    // this.sendMessageToWebView({
+    //   command: "change-model-response",
+    //   data: {
+    //     model:currentModel.model,
+    //   },
+    // });
   }
 
   public sendMessageToWebView(message: { command: string; data?: any }): void {

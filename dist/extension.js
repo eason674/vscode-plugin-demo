@@ -69966,21 +69966,44 @@ var getModelByName = (name) => {
 // src/modules/index.ts
 var modelName = "deepseekReasoner";
 var currentModel = getModelByName(modelName);
-var modelList = deepSeekmodels;
-var agent = createAgent({
-  model: currentModel,
-  tools: []
-});
+var agent;
+var initAgent = () => {
+  if (!currentModel) {
+    throw new Error(`\u521D\u59CB\u5316Agent\u5931\u8D25\uFF1A\u6A21\u578B ${modelName} \u672A\u627E\u5230\u6216\u521D\u59CB\u5316\u5931\u8D25`);
+  }
+  agent = createAgent({
+    model: currentModel,
+    tools: []
+  });
+};
+initAgent();
 var getModels = () => {
-  let models = [];
-  for (const key in modelList) {
-    const modelInstance = modelList[key];
+  const models = [];
+  const modelEntries = Array.isArray(deepSeekmodels) ? deepSeekmodels.entries() : Object.entries(deepSeekmodels);
+  for (const [_, modelInstance] of modelEntries) {
+    if (!modelInstance?.model) continue;
+    const isDeepSeekModel = modelInstance.model === "deepseek-chat" || modelInstance.model === "deepseek-reasoner";
     models.push({
       name: modelInstance.model,
-      label: modelInstance.model === "deepseek-chat" || "deepseek-reasoner" ? "deepseek" : modelInstance.model
+      label: isDeepSeekModel ? "deepseek" : modelInstance.model
     });
   }
   return models;
+};
+var switchModel = (newModelName) => {
+  try {
+    const newModel = getModelByName(newModelName);
+    if (!newModel) {
+      throw new Error(`\u6A21\u578B ${newModelName} \u4E0D\u5B58\u5728`);
+    }
+    currentModel = newModel;
+    initAgent();
+    console.log(`\u2705 \u6210\u529F\u5207\u6362\u5230\u6A21\u578B\uFF1A${newModelName}`);
+    return newModel;
+  } catch (error48) {
+    console.error(`\u274C \u5207\u6362\u6A21\u578B\u5931\u8D25\uFF1A${error48.message}`);
+    throw error48;
+  }
 };
 var modules_default = agent;
 
@@ -70049,13 +70072,17 @@ var ChatUiProvider = class {
     });
   }
   async handleChangeModel(message) {
-    currentModel.model = message.data.model;
-    this.sendMessageToWebView({
-      command: "change-model-response",
-      data: {
-        model: currentModel.model
-      }
-    });
+    console.log(message.data.model, "message.data.model;");
+    switch (message.data.model) {
+      case "deepseek-chat":
+        switchModel("deepseekChat");
+        break;
+      case "deepseek-reasoner":
+        switchModel("deepseekReasoner");
+        break;
+      default:
+        break;
+    }
   }
   sendMessageToWebView(message) {
     this._view?.webview.postMessage(message);

@@ -12,7 +12,7 @@
     />
     <!--模型列表选择  -->
     <div class="footer">
-      <a-select :style="{ width: '200px' }" placeholder="请选择模型" v-model="chatStore.currentModel.name" >
+      <a-select :style="{ width: '200px' }" placeholder="请选择模型" v-model="chatStore.currentModel.name" @change="handleChangeModel" >
         <a-option v-for="model in chatStore.modelList">{{model.name}}</a-option>
       </a-select>
     </div>
@@ -22,6 +22,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useChatStore } from '@/stores/chat'
+import { sendMessage } from '@/common/vscode'
 const chatStore = useChatStore()
 const inputValue = ref('')
 const emits = defineEmits(['enter'])
@@ -56,6 +57,16 @@ const handleKeyDown = (event: KeyboardEvent) => {
 
       break
   }
+}
+const handleChangeModel=(model:string)=>{
+  console.log('只有一次吧？',model);
+  
+  sendMessage({
+    command:'change-model-request',
+    data:{
+      model
+    }
+  })
 }
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown)
