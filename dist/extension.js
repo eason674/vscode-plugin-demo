@@ -83719,11 +83719,16 @@ var deepSeekmodels = {
     model: "deepseek-chat",
     configuration: { baseURL: process.env.DEEPSEEK_BASE_URL }
   }),
-  // 思考模式
-  deepseekReasoner: new ChatOpenAI({
-    apiKey: process.env.DEEPSEEK_API_KEY,
-    model: "deepseek-reasoner",
-    configuration: { baseURL: process.env.DEEPSEEK_BASE_URL }
+  // 思考模式-不支持tools,暂去掉
+  // deepseekReasoner: new ChatOpenAI({
+  //   apiKey: process.env.DEEPSEEK_API_KEY,
+  //   model: "deepseek-reasoner",
+  //   configuration: { baseURL: process.env.DEEPSEEK_BASE_URL }
+  // }),
+  GLM: new ChatOpenAI({
+    apiKey: process.env.GLM_API_KEY,
+    model: "glm-4.7",
+    configuration: { baseURL: process.env.GLM_BASE_URL }
   })
 };
 var getModelByName = (name2) => {
@@ -90655,7 +90660,7 @@ var allTools = async () => {
 };
 
 // src/modules/index.ts
-var modelName = "deepseekChat";
+var modelName = "GLM";
 var currentModel = getModelByName(modelName);
 var agent;
 var initAgent = async () => {

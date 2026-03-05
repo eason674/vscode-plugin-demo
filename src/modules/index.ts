@@ -8,7 +8,7 @@ import { allTools, initMcp } from "./Mcp";
 
 
 /** 默认模型名称 */
-export const modelName = "deepseekChat";
+export const modelName = "GLM";
 
 /** 当前激活的模型实例（标注可空类型，避免未赋值使用） */
 export let currentModel: ChatOpenAI | undefined | any =

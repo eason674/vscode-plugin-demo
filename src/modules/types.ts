@@ -2,7 +2,8 @@ import { ChatOpenAI } from "@langchain/openai";
 
 export interface IdeepSeekmodels {
   deepseekChat: ChatOpenAI;
-  deepseekReasoner: ChatOpenAI;
+  // deepseekReasoner: ChatOpenAI;
+  GLM: ChatOpenAI;
 }
 
 export interface IqianWenmodels {
