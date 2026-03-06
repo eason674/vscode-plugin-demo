@@ -1,6 +1,6 @@
 # VS Code AI Chat Plugin
 
-一个功能强大的VS Code AI聊天插件，支持多种AI模型和MCP协议，提供智能对话和代码辅助功能。
+一个VS Code AI聊天插件demo，支持多种AI模型和MCP协议，提供智能对话和代码辅助功能。
 
 ## 功能特性
 
