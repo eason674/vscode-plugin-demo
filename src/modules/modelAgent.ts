@@ -2,6 +2,8 @@ import { AIMessage, createAgent, createMiddleware } from "langchain";
 import { ChatOpenAI } from "@langchain/openai";
 import { currentModel, models } from ".";
 import { mcpClient } from "./modelMcp";
+import { RemoveMessage } from "@langchain/core/messages";
+import { MemorySaver, REMOVE_ALL_MESSAGES } from "@langchain/langgraph";
 
 export class ModelAgent {
   // agent 实例
@@ -41,6 +43,28 @@ export class ModelAgent {
         return next(request);
       },
     });
+    // 加载短期记忆中间件-只保持3条最近消息
+    const trimMessages = createMiddleware({
+      name: "TrimMessages",
+      beforeModel: (state) => {
+        const messages = state.messages;
+        if (messages.length <= 5) {
+          return; // No changes needed
+        }
+        const firstMsg = messages[0];
+        // 增加保留条数，例如保留最近 6 条消息（3 轮对话）
+        const recentMessages = messages.slice(-6);
+        const newMessages = [firstMsg, ...recentMessages];
+        return {
+          messages: [
+            new RemoveMessage({ id: REMOVE_ALL_MESSAGES }),
+            ...newMessages,
+          ],
+        };
+      },
+    });
+
+    const checkpointer = new MemorySaver();
     // 创建 Agent，只需要创建一次
     this._agent = createAgent({
       // 默认模型
@@ -48,7 +72,8 @@ export class ModelAgent {
       tools: this._mcpClient.getAllTools(),
       systemPrompt: "You are a helpful assistant.",
       // 添加中间件
-      middleware: [modelSwitchMiddleware],
+      middleware: [modelSwitchMiddleware, trimMessages],
+      checkpointer,
     });
   }
 
@@ -73,9 +98,16 @@ export class ModelAgent {
     console.log(`🤖 使用模型 [${this.currentModelName}] 处理请求...`);
     const startTime = Date.now();
     try {
-      const result = await this._agent.invoke({
-        messages: [{ role: "user", content }],
-      });
+      const result = await this._agent.invoke(
+        {
+          messages: [{ role: "user", content }],
+        },
+        {
+          configurable: {
+            thread_id: "vscode_plugins_demo_999",
+          },
+        },
+      );
       const duration = Date.now() - startTime;
       console.log(`📊 调用耗时: ${duration}ms`);
       return this.invokeResponse(result);
@@ -87,7 +119,7 @@ export class ModelAgent {
 
   private invokeResponse(result: { messages: AIMessage[] }) {
     const lastMessage = result.messages.at(-1) as AIMessage;
-    console.log(lastMessage,'model response');
+    console.log(lastMessage, "model response");
     return lastMessage.content;
   }
 
