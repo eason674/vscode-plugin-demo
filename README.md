@@ -43,6 +43,9 @@ npm install
 ```bash
 npm run build
 ```
+### 调试插件前置条件
+1. 源码默认开启热更新连接webview的dev server，无需手动刷新，在开启插件前要先开启webview的dev server-npm run dev 暴露dev server端口
+2. 如若插件打包，请将chatuiprovider重写webview连接的resolveWebviewView方法，将webview的html路径指向打包后的html文件
 
 ### 调试插件
 1. 按F5启动调试模式
