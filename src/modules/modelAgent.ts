@@ -43,7 +43,7 @@ export class ModelAgent {
         return next(request);
       },
     });
-    // 加载短期记忆中间件-只保持3条最近消息
+    // 加载短期记忆中间件-只保持20条最近消息（10轮对话）
     const trimMessages = createMiddleware({
       name: "TrimMessages",
       beforeModel: (state) => {
@@ -52,8 +52,10 @@ export class ModelAgent {
           return; // No changes needed
         }
         const firstMsg = messages[0];
-        // 增加保留条数，例如保留最近 6 条消息（3 轮对话）
-        const recentMessages = messages.slice(-6);
+        // 获取配置的会话记忆长度
+        let memoryLimit=(process.env.SESSION_MEMORY_LENGTH?parseInt(process.env.SESSION_MEMORY_LENGTH):10)*2
+        // 增加保留条数，例如保留最近 20 条消息（10 轮对话）
+        const recentMessages = messages.slice(-memoryLimit);
         const newMessages = [firstMsg, ...recentMessages];
         return {
           messages: [
