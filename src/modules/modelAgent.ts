@@ -1,8 +1,7 @@
 import { AIMessage, createAgent, createMiddleware } from "langchain";
 import { ChatOpenAI } from "@langchain/openai";
 import { currentModel, models } from ".";
-import { ModelMcp, mcpClient } from "./modelMcp";
-import { MultiServerMCPClient } from "@langchain/mcp-adapters";
+import { mcpClient } from "./modelMcp";
 
 export class ModelAgent {
   // agent 实例
@@ -79,15 +78,16 @@ export class ModelAgent {
       });
       const duration = Date.now() - startTime;
       console.log(`📊 调用耗时: ${duration}ms`);
-      return this.response(result);
+      return this.invokeResponse(result);
     } catch (error) {
       console.error(`❌ 模型调用失败:`, error);
       throw error;
     }
   }
 
-  private response(result: { messages: AIMessage[] }) {
+  private invokeResponse(result: { messages: AIMessage[] }) {
     const lastMessage = result.messages.at(-1) as AIMessage;
+    console.log(lastMessage,'model response');
     return lastMessage.content;
   }
 

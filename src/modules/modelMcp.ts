@@ -1,6 +1,6 @@
+import vscode from 'vscode'
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import { StructuredToolInterface } from "@langchain/core/tools";
-
 export class ModelMcp {
   private _client!: MultiServerMCPClient;
   private allTools: StructuredToolInterface[] = [];
@@ -21,12 +21,13 @@ export class ModelMcp {
     return this.allTools;
   }
   private async initMcp() {
+    let workspacePath = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
     this._client = new MultiServerMCPClient({
       // 内置mcp-文件系统操作
       filesystem: {
         transport: "stdio",
         command: "npx",
-        args: ["-y", "@modelcontextprotocol/server-filesystem", "."],
+        args: ["-y", "@modelcontextprotocol/server-filesystem", workspacePath ||"."],
       },
       // 内置mcp-fetch
       fetch: {
