@@ -20,16 +20,18 @@
       >
         <a-option v-for="model in chatStore.modelList">{{ model.name }}</a-option>
       </a-select>
-      <div :style="{ margin: '0 10px 0 0' }">
+      <div :style="{ margin: '0 10px 0 0' }" class="footer-right">
         <icon-send
           v-if="!chatStore.waiting.status"
           :style="{ color: inputValue.trim() !== '' ? '#76ed96' : '' }"
           @click="handleEnter"
+          class="send-icon"
         />
         <icon-record-stop
           v-else
           :style="{ color: chatStore.waiting.status ? '#76ed96' : '' }"
           @click="handleCancelRequest"
+          class="cancel-icon"
         ></icon-record-stop>
       </div>
     </div>
@@ -162,6 +164,17 @@ onUnmounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    .footer-right {
+      .send-icon,
+      .cancel-icon {
+        padding: 5px;
+        border-radius: 5px;
+        background: var(--vscode-activityBar-background);
+        &:hover {
+          cursor: pointer;
+        }
+      }
+    }
   }
   .arco-select-view-single,
   .arco-select-view-single .arco-select-view-suffix {
@@ -171,8 +184,6 @@ onUnmounted(() => {
     background: var(--vscode-editorWidget-background);
   }
 
-  .active {
-    color: #76ed96;
-  }
+ 
 }
 </style>
