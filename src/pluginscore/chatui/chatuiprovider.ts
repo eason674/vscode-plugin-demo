@@ -48,6 +48,8 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
           this.handleRequest(data),
         [IDEFROMWEBVIEWREQ.CHANGE_MODEL_REQUEST]: (data: any) =>
           this.handleChangeModel(data),
+        [IDEFROMWEBVIEWREQ.CANCEL_AGENT_REQUEST]: (data: any) =>
+          this.handleCancelRequest(),
       };
       config[command]?.(data);
     });
@@ -67,15 +69,18 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  /**
+   * 流式返回chunck 处理
+   * @param data
+   * @returns
+   */
   private onChunk(data: any) {
-    console.log(this,'???');
-    
     const { content, model, stream } = data;
     if (data.onComplete) {
       this.sendMessageToWebView({
         command: IDETOWEBVIEWREP.CHAT_RESPONSE,
         data: {
-          content:'',
+          content: "",
           isStreamComplete: true,
           stream: stream,
           model: model,
@@ -89,7 +94,7 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
           content,
           model: model,
           stream: stream,
-          isStreamComplete:false
+          isStreamComplete: false,
         },
       });
     }
@@ -100,20 +105,47 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
    */
   public async handleRequest(data: { content: string }) {
     await this.initAgent();
-    let aiContent = await this._agent.request(data.content, this.onChunk.bind(this));
+    let aiContent = await this._agent.request(
+      data.content,
+      this.onChunk.bind(this),
+    );
     let model = this._agent.getCurrentModelInfo();
-    if(aiContent) {
+    if (aiContent) {
       // 非流式响应
+      this.sendMessageToWebView({
+        command: IDETOWEBVIEWREP.CHAT_RESPONSE,
+        data: {
+          content: aiContent,
+          model: model.currentModel,
+          stream: false,
+        },
+      });
+    }
+  }
+
+  /**
+   * 取消agent调用-停止回答
+   */
+  public async handleCancelRequest() {
+    await this._agent.cancelAgent();
+    // 取消成功通知webview
     this.sendMessageToWebView({
-      command: IDETOWEBVIEWREP.CHAT_RESPONSE,
+      command: IDETOWEBVIEWREP.CANCEL_AGENT_RESPONSE,
       data: {
-        content: aiContent,
-        model: model.currentModel,
-        stream: false,
+        isCancel: true,
+        model: this._agent.getCurrentModelInfo().currentModel,
+        message: `"${this._agent.getCurrentModelInfo().currentModel}"模型取消成功`,
       },
     });
-    }
-    
+    // 通知本轮对话已结束
+     this.sendMessageToWebView({
+      command: IDETOWEBVIEWREP.AGENT_REQUEST_END_RESPONSE,
+      data: {
+        isEnd: true,
+        model: this._agent.getCurrentModelInfo().currentModel,
+        message: `本轮会话已结束`,
+      },
+    });
   }
   /**
    * 切换模型

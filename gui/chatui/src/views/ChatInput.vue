@@ -12,12 +12,24 @@
     />
     <!--模型列表选择  -->
     <div class="footer">
-      <a-select :style="{ width: '200px' }" placeholder="请选择模型" v-model="chatStore.currentModel.name" @change="handleChangeModel" >
-        <a-option v-for="model in chatStore.modelList">{{model.name}}</a-option>
+      <a-select
+        :style="{ width: '200px' }"
+        placeholder="请选择模型"
+        v-model="chatStore.currentModel.name"
+        @change="handleChangeModel"
+      >
+        <a-option v-for="model in chatStore.modelList">{{ model.name }}</a-option>
       </a-select>
-      <div :style="{margin:'0 10px 0 0'}">
-        <icon-send  v-if="!chatStore.waiting.status" :style="{color:inputValue.trim()!==''?'#76ed96':''}"/>
-        <icon-record-stop v-else :style="{ color:chatStore.waiting.status?'#76ed96':''}"></icon-record-stop>
+      <div :style="{ margin: '0 10px 0 0' }">
+        <icon-send
+          v-if="!chatStore.waiting.status"
+          :style="{ color: inputValue.trim() !== '' ? '#76ed96' : '' }"
+        />
+        <icon-record-stop
+          v-else
+          :style="{ color: chatStore.waiting.status ? '#76ed96' : '' }"
+          @click="handleCancelRequest"
+        ></icon-record-stop>
       </div>
     </div>
   </div>
@@ -27,6 +39,7 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { sendMessage } from '@/common/vscode'
+import { webviewReqCommand } from '@/common/commandname'
 const chatStore = useChatStore()
 const inputValue = ref('')
 const emits = defineEmits(['enter'])
@@ -43,12 +56,21 @@ const handleEnter = () => {
   waitingInit()
 }
 
+const handleCancelRequest = () => {
+  console.log('用户要取消模型回答')
+  // 更新等待状态
+  chatStore.updateWaiting(false)
+  sendMessage({
+    command: webviewReqCommand.CANCEL_AGENT_REQUEST,
+  })
+}
+
 /**
  * 模型正在生成中，需要做的init操作
  */
-const waitingInit=()=>{
-inputValue.value = '';
-chatStore.updateWaiting(true)
+const waitingInit = () => {
+  inputValue.value = ''
+  chatStore.updateWaiting(true)
 }
 const handleKeyDown = (event: KeyboardEvent) => {
   switch (event.key) {
@@ -70,12 +92,12 @@ const handleKeyDown = (event: KeyboardEvent) => {
       break
   }
 }
-const handleChangeModel=(model:string)=>{
+const handleChangeModel = (model: string) => {
   sendMessage({
-    command:'change-model-request',
-    data:{
-      model
-    }
+    command: 'change-model-request',
+    data: {
+      model,
+    },
   })
 }
 onMounted(() => {
@@ -147,7 +169,6 @@ onUnmounted(() => {
   .arco-select-dropdown {
     background: var(--vscode-editorWidget-background);
   }
-
 
   .active {
     color: #76ed96;

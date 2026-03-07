@@ -15,8 +15,17 @@ export class ModelAgent {
   private modelsMap: Map<string, ChatOpenAI>;
   // 是否开启流式返回
   private stream: boolean = true;
-
+  // mcp client
   private _mcpClient: any;
+  // 初始化agent 控制器
+  private agentController: any;
+  // agent 配置参数
+  private agentConfigurable = {
+    configurable: {
+      thread_id: "vscode_plugins_demo_999",
+    },
+    signal: false,
+  };
 
   constructor(initialModelName: string = currentModel) {
     let newModels = this.initModels(models);
@@ -26,6 +35,10 @@ export class ModelAgent {
     this.currentModelName = initialModelName;
     // 传入初始化好的mcp
     this._mcpClient = mcpClient;
+    // 初始化 agent 控制器
+    this.agentController = new AbortController();
+    // 配置好 agent 可取消信号
+    this.agentConfigurable.signal = this.agentController.signal;
     // 初始化 agent
     this.initAgent();
   }
@@ -119,11 +132,25 @@ export class ModelAgent {
    * @returns
    */
   public async request(content: string, chunkCallback?: Function) {
+    // 确保每次有可用的控制器实例可用
+    this.ensureSignal();
     if (this.stream) {
       return this.invokeStream(content, chunkCallback);
     } else {
       return this.invoke(content);
     }
+  }
+
+  /**
+   * 确保signal可用
+   */
+  private ensureSignal() {
+    if (this.agentController.signal.aborted) {
+      console.log("🔄 Signal已中止，重新创建AbortController");
+      this.agentController = new AbortController();
+      this.agentConfigurable.signal = this.agentController.signal;
+    }
+    return this.agentController;
   }
   private async invokeStream(content: string, chunkCallback?: Function) {
     if (!this._agent) throw new Error("Agent未初始化");
@@ -133,11 +160,7 @@ export class ModelAgent {
         {
           messages: [{ role: "user", content }],
         },
-        {
-          configurable: {
-            thread_id: "vscode_plugins_demo_999",
-          },
-        },
+        this.agentConfigurable,
       );
       return this.streamResponse(stream, chunkCallback);
     } catch (error) {
@@ -175,19 +198,26 @@ export class ModelAgent {
           }
           break;
         case "on_chat_model_end":
-          console.log("流式返回结束", event);
-          // 流氏返回结束
-          if (chunkCallback) {
-            chunkCallback({
-              onComplete: true,
-              content: fullResponse,
-              stream: this.stream,
-            });
-          }
+          // console.log("流式返回结束", event);
+          // // 流氏返回结束
+          // if (chunkCallback) {
+          //   chunkCallback({
+          //     onComplete: true,
+          //     content: fullResponse,
+          //     stream: this.stream,
+          //   });
+          // }
           break;
         default:
           break;
       }
+    }
+    if (chunkCallback) {
+      chunkCallback({
+        onComplete: true,
+        content: fullResponse,
+        stream: this.stream,
+      });
     }
   }
 
@@ -205,11 +235,7 @@ export class ModelAgent {
         {
           messages: [{ role: "user", content }],
         },
-        {
-          configurable: {
-            thread_id: "vscode_plugins_demo_999",
-          },
-        },
+        this.agentConfigurable,
       );
       const duration = Date.now() - startTime;
       console.log(`📊 调用耗时: ${duration}ms`);
@@ -225,6 +251,14 @@ export class ModelAgent {
     console.log(lastMessage, "model response");
     return lastMessage.content;
   }
+
+  /**
+   * 取消当前 Agent 调用
+   */
+  public cancelAgent() {
+    this.agentController.abort();
+  }
+
 
   /**
    * 获取当前模型信息

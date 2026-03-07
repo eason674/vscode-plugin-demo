@@ -13,7 +13,8 @@ import { sendMessage } from '@/common/vscode'
 import { webviewReqCommand } from '@/common/commandname'
 import { onMounted, onUnmounted } from 'vue'
 import type { IMessagesList } from '@/stores/types/chat'
-import type { IChatResponse } from './types'
+import type { IAgentRequestEndResponse, ICancelAgentResponse, IChatResponse } from './types'
+import { Message } from '@arco-design/web-vue'
 const chatStore = useChatStore()
 
 const chatRequest = (content: string) => {
@@ -105,10 +106,27 @@ const chatResponse = (data: IChatResponse) => {
   stream ? streamResponse(data) : invokeResponse(data)
 }
 
+// 模型取消返回
+const cancelResponse=(data:ICancelAgentResponse)=>{
+  const {isCancel,message}=data;
+  if(isCancel) {
+     Message.success(message)
+  }
+}
+
+// 本轮对话已经结束
+const agentRequestEndResponse=(data:IAgentRequestEndResponse)=>{
+  reset()
+  isStreaming = false
+  currentStreamMessageIndex = -1
+}
 const responseCommandConfig: any = {
   'chat-response': chatResponse,
   'config-response': configResponse,
+  'cancel-agent-response': cancelResponse,
+  'agent-request-end-response': agentRequestEndResponse,
 }
+
 const handleMessage = (event: any) => {
   let { command, data } = event.data
   console.log(command, 'command')

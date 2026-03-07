@@ -7,7 +7,8 @@ dotenv.config({
   path: path.resolve(__dirname, "../.env"),
 });
 
-export let currentModel = "deepseek-v3";
+// 当前选择模型
+export let currentModel = "glm-4.7";
 /**
  * 模型列表
  */
