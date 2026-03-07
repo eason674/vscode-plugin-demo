@@ -24,6 +24,7 @@
         <icon-send
           v-if="!chatStore.waiting.status"
           :style="{ color: inputValue.trim() !== '' ? '#76ed96' : '' }"
+          @click="handleEnter"
         />
         <icon-record-stop
           v-else

@@ -1,5 +1,5 @@
 <template>
-  <div class="index-change-log">eason的自留地~</div>
+  <div class="index-change-log">(｡♥‿♥｡) hello~~</div>
 </template>
 
 <script setup></script>
