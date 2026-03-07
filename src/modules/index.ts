@@ -7,11 +7,11 @@ dotenv.config({
   path: path.resolve(__dirname, "../.env"),
 });
 
-export let currentModel='glm-4.7'
+export let currentModel = "glm-4.7";
 /**
  * 模型列表
  */
-export const models:IModels[] = [
+export const models: IModels[] = [
   {
     name: "deepseek-v3",
     modelName: "deepseek-chat",
@@ -19,6 +19,7 @@ export const models:IModels[] = [
       apiKey: process.env.DEEPSEEK_API_KEY,
       model: "deepseek-chat",
       configuration: { baseURL: process.env.DEEPSEEK_BASE_URL },
+      streaming: true,
     }),
   },
   {
@@ -28,17 +29,18 @@ export const models:IModels[] = [
       apiKey: process.env.GLM_API_KEY,
       model: "glm-4.7",
       configuration: { baseURL: process.env.GLM_BASE_URL },
+      streaming: true,
     }),
   },
 ];
 
 /**
- * 
+ *
  * @returns 给前端显示的模型列表
  */
-export const getAllModel=()=>{
+export const getAllModel = () => {
   return models.map((item) => ({
     name: item.name,
     label: item.modelName,
   }));
-}
+};

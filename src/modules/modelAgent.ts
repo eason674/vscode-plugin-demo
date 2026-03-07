@@ -13,7 +13,7 @@ export class ModelAgent {
   // 模型列表
   private modelsMap: Map<string, ChatOpenAI>;
   // 是否开启流式返回
-  private steram: boolean = false;
+  private stream: boolean = true;
 
   private _mcpClient: any;
 
@@ -53,7 +53,10 @@ export class ModelAgent {
         }
         const firstMsg = messages[0];
         // 获取配置的会话记忆长度
-        let memoryLimit=(process.env.SESSION_MEMORY_LENGTH?parseInt(process.env.SESSION_MEMORY_LENGTH):10)*2
+        let memoryLimit =
+          (process.env.SESSION_MEMORY_LENGTH
+            ? parseInt(process.env.SESSION_MEMORY_LENGTH)
+            : 10) * 2;
         // 增加保留条数，例如保留最近 20 条消息（10 轮对话）
         const recentMessages = messages.slice(-memoryLimit);
         const newMessages = [firstMsg, ...recentMessages];
@@ -90,6 +93,77 @@ export class ModelAgent {
     }
     this.currentModelName = modelName;
     console.log(`🔄 已切换到模型: ${modelName}`);
+  }
+  /**
+   * 主方法，根据是否开启流式返回调用不同的方法
+   * @param content 
+   * @returns 
+   */
+  public async request(content: string,chunkCallback?:Function) {
+    if (this.stream) {
+      return this.invokeStream(content,chunkCallback);
+    } else {
+      return this.invoke(content);
+    }
+  }
+  private async invokeStream(content: string,chunkCallback?:Function) {
+    if (!this._agent) throw new Error("Agent未初始化");
+    console.log(`🤖 使用模型 [${this.currentModelName}] 处理请求...`);
+    try {
+      const stream = await this._agent.streamEvents(
+        {
+          messages: [{ role: "user", content }],
+        },
+        {
+          configurable: {
+            thread_id: "vscode_plugins_demo_999",
+          },
+        },
+      );
+      return this.streamResponse(stream,chunkCallback);
+    } catch (error) {
+      console.error(`❌ 模型调用失败:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 流式返回处理
+   * @param stream
+   * @returns 返回一个包含完整内容和流式回调的 Promise
+   */
+  public async streamResponse(stream: AsyncGenerator<any>,chunkCallback?:Function) {
+    // 全部内容
+    let fullResponse = "";
+    for await (const event of stream) {
+      // 区分流式返回与其他工具返回
+      switch (event.event) {
+        case "on_chat_model_stream":
+          const content = event.data?.chunk?.content;
+          if (content) {
+            fullResponse += content;
+            // console.log("流式输出", content);
+            if(chunkCallback){
+              chunkCallback({
+                content: content,
+                model: this.currentModelName,
+                stream: true,
+              });
+            }
+          }
+          break;
+        default:
+          break;
+      }
+    }
+    // 流氏返回结束
+    if(chunkCallback) {
+      chunkCallback({
+        onComplete:true,
+        content: fullResponse,
+        stream:this.stream,
+      }) 
+    }
   }
 
   /**

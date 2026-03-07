@@ -11,8 +11,8 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
     this._context = context;
   }
   private initAgent() {
-    if(!this._agent) {
-     this._agent = new ModelAgent();
+    if (!this._agent) {
+      this._agent = new ModelAgent();
     }
   }
 
@@ -66,27 +66,60 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
       },
     });
   }
+
+  private onChunk(data: any) {
+    console.log(this,'???');
+    
+    const { content, model, stream } = data;
+    if (data.onComplete) {
+      this.sendMessageToWebView({
+        command: IDETOWEBVIEWREP.CHAT_RESPONSE,
+        data: {
+          content:'',
+          isStreamComplete: true,
+          stream: stream,
+          model: model,
+        },
+      });
+      return;
+    } else {
+      this.sendMessageToWebView({
+        command: IDETOWEBVIEWREP.CHAT_RESPONSE,
+        data: {
+          content,
+          model: model,
+          stream: stream,
+          isStreamComplete:false
+        },
+      });
+    }
+  }
   /**
    * 发送请求
    * @param data
    */
-  public async handleRequest(data: { content: string } ) {
+  public async handleRequest(data: { content: string }) {
     await this.initAgent();
-    let aiResponseContent = await this._agent.invoke(data.content);
-    let model=this._agent.getCurrentModelInfo();
+    let result = await this._agent.request(data.content, this.onChunk.bind(this));
+    let model = this._agent.getCurrentModelInfo();
+    if(result) {
+      // 非流式响应
     this.sendMessageToWebView({
       command: IDETOWEBVIEWREP.CHAT_RESPONSE,
       data: {
-        content: aiResponseContent,
-        model: model.currentModel
+        content: result.content,
+        model: model.currentModel,
+        stream: false,
       },
     });
+    }
+    
   }
   /**
    * 切换模型
    * @param data
    */
-  public async handleChangeModel(data: { model: string } ) {
+  public async handleChangeModel(data: { model: string }) {
     let newModel = data.model;
     console.log(newModel, "要切换的model");
     this._agent.switchModel(newModel);

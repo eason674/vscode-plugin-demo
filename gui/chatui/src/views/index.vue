@@ -13,7 +13,9 @@ import { sendMessage } from '@/common/vscode'
 import { webviewReqCommand } from '@/common/commandname'
 import { onMounted, onUnmounted } from 'vue'
 import type { IMessagesList } from '@/stores/types/chat'
+import type { IChatResponse } from './types'
 const chatStore = useChatStore()
+
 const chatRequest = (content: string) => {
   sendMessage({
     command: webviewReqCommand.CHAT_REQUEST,
@@ -24,42 +26,83 @@ const chatRequest = (content: string) => {
 }
 
 const configResponse = (data: any) => {
-  chatStore.currentModel.name = data.currentModel;
-  chatStore.pushModelList(data.modelList);
+  chatStore.currentModel.name = data.currentModel
+  chatStore.pushModelList(data.modelList)
 }
-const reset=()=>{
+const reset = () => {
   chatStore.updateWaiting(false)
 }
 
-const chatResponse = (data: any) => {
-  // 初始化
-  reset()
+// 处理流式数据块
+let isStreaming = false
+let currentStreamMessageIndex = -1
+// 处理流式响应
+const streamResponse = (data: IChatResponse) => {
+  console.log('webview处理流式',data);
+  const { content, model, stream, isStreamComplete } = data
+  if (stream && isStreamComplete) {
+    isStreaming = false
+    currentStreamMessageIndex = -1
+    return
+  }
+
+  // 如果是流式传输的开始，创建新消息并执行reset
+  if (!isStreaming) {
+    isStreaming = true
+    reset() // 只在流式开始时执行一次reset
+
+    // 创建新的消息对象用于流式显示
+    const newMessage: IMessagesList = {
+      role: 'ai',
+      content: '',
+      model: model,
+    }
+    chatStore.messagesList.push(newMessage)
+    currentStreamMessageIndex = chatStore.messagesList.length - 1
+  }
+
+  // 更新当前流式消息的内容
+  if (currentStreamMessageIndex >= 0) {
+    const currentMessage = chatStore.messagesList[currentStreamMessageIndex]
+    if (currentMessage) {
+      currentMessage.content += content
+      // 通过替换数组中的元素来触发响应式更新
+      chatStore.messagesList[currentStreamMessageIndex] = { ...currentMessage }
+    }
+  }
+}
+// 处理非流式响应
+const invokeResponse = (data: IChatResponse) => {
   // 创建一个新的消息对象用于打字机效果
   const newMessage: IMessagesList = {
     role: 'ai',
     content: '',
     model: data.model,
-  };
-  chatStore.messagesList.push(newMessage);
-  const messageIndex = chatStore.messagesList.length - 1;
-
+  }
+  chatStore.messagesList.push(newMessage)
+  const messageIndex = chatStore.messagesList.length - 1
   // 获取完整内容并逐步添加到当前消息
-  const fullText = data.content;
-  let currentIndex = 0;
-  
+  const fullText = data.content
+  let currentIndex = 0
   // 打字机效果
   const typewriterInterval = setInterval(() => {
     if (currentIndex < fullText.length) {
       // 更新消息内容
-      newMessage.content = fullText.substring(0, currentIndex + 1);
+      newMessage.content = fullText.substring(0, currentIndex + 1)
       // 通过替换数组中的元素来触发响应式更新
-      chatStore.messagesList[messageIndex] = {...newMessage};
-      currentIndex++;
+      chatStore.messagesList[messageIndex] = { ...newMessage }
+      currentIndex++
     } else {
       // 完成后清除定时器
-      clearInterval(typewriterInterval);
+      clearInterval(typewriterInterval)
     }
-  }, 30); // 每30毫秒添加一个字符
+  }, 30) // 每30毫秒添加一个字符
+}
+
+const chatResponse = (data: IChatResponse) => {
+  const { stream } = data
+  !stream && reset()
+  stream ? streamResponse(data) : invokeResponse(data)
 }
 
 const responseCommandConfig: any = {

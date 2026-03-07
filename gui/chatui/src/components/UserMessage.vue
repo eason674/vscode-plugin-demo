@@ -22,16 +22,22 @@ const requestHtml = computed(() => {
 <style>
 .user-message-container {
   margin: 10px 0 0 0;
-  padding: 0 10px;
-  background: var(--vscode-activityBar-background);
-  border-radius: 5px;
+  /* padding: 0 10px; */
+  text-align: right;
+  /* background: var(--vscode-activityBar-background); */
+  /* border-radius: 5px; */
   .title {
     font-weight: 600;
     padding: 8px 0;
-    border-bottom: 1px solid var(--vscode-editorWidget-border);
+    /* border-bottom: 1px solid var(--vscode-editorWidget-border); */
   }
   ._text {
-    padding: 10px 0;
+    padding: 5px 10px;
+    background: var(--vscode-activityBar-background);
+    text-align: right;
+     border-radius: 5px;
+     /* padding: ; */
+    
   }
 }
 </style>
