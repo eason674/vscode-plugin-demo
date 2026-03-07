@@ -96,17 +96,17 @@ export class ModelAgent {
   }
   /**
    * 主方法，根据是否开启流式返回调用不同的方法
-   * @param content 
-   * @returns 
+   * @param content
+   * @returns
    */
-  public async request(content: string,chunkCallback?:Function) {
+  public async request(content: string, chunkCallback?: Function) {
     if (this.stream) {
-      return this.invokeStream(content,chunkCallback);
+      return this.invokeStream(content, chunkCallback);
     } else {
       return this.invoke(content);
     }
   }
-  private async invokeStream(content: string,chunkCallback?:Function) {
+  private async invokeStream(content: string, chunkCallback?: Function) {
     if (!this._agent) throw new Error("Agent未初始化");
     console.log(`🤖 使用模型 [${this.currentModelName}] 处理请求...`);
     try {
@@ -120,7 +120,7 @@ export class ModelAgent {
           },
         },
       );
-      return this.streamResponse(stream,chunkCallback);
+      return this.streamResponse(stream, chunkCallback);
     } catch (error) {
       console.error(`❌ 模型调用失败:`, error);
       throw error;
@@ -132,7 +132,10 @@ export class ModelAgent {
    * @param stream
    * @returns 返回一个包含完整内容和流式回调的 Promise
    */
-  public async streamResponse(stream: AsyncGenerator<any>,chunkCallback?:Function) {
+  public async streamResponse(
+    stream: AsyncGenerator<any>,
+    chunkCallback?: Function,
+  ) {
     // 全部内容
     let fullResponse = "";
     for await (const event of stream) {
@@ -143,7 +146,7 @@ export class ModelAgent {
           if (content) {
             fullResponse += content;
             // console.log("流式输出", content);
-            if(chunkCallback){
+            if (chunkCallback) {
               chunkCallback({
                 content: content,
                 model: this.currentModelName,
@@ -152,17 +155,20 @@ export class ModelAgent {
             }
           }
           break;
+        case "on_chat_model_end":
+          console.log("流式返回结束", event);
+          // 流氏返回结束
+          if (chunkCallback) {
+            chunkCallback({
+              onComplete: true,
+              content: fullResponse,
+              stream: this.stream,
+            });
+          }
+          break;
         default:
           break;
       }
-    }
-    // 流氏返回结束
-    if(chunkCallback) {
-      chunkCallback({
-        onComplete:true,
-        content: fullResponse,
-        stream:this.stream,
-      }) 
     }
   }
 

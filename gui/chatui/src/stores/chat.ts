@@ -11,7 +11,7 @@ export const useChatStore = defineStore('chat', () => {
   })
   // 模型对话中等待状态
   const waiting=ref<IChat['waiting']>({
-    status:true,
+    status:false,
     text:'正在生成中...'
   })
   // 模型列表

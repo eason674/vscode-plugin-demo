@@ -41,6 +41,7 @@ const streamResponse = (data: IChatResponse) => {
   console.log('webview处理流式',data);
   const { content, model, stream, isStreamComplete } = data
   if (stream && isStreamComplete) {
+     reset() 
     isStreaming = false
     currentStreamMessageIndex = -1
     return
@@ -49,8 +50,7 @@ const streamResponse = (data: IChatResponse) => {
   // 如果是流式传输的开始，创建新消息并执行reset
   if (!isStreaming) {
     isStreaming = true
-    reset() // 只在流式开始时执行一次reset
-
+   
     // 创建新的消息对象用于流式显示
     const newMessage: IMessagesList = {
       role: 'ai',

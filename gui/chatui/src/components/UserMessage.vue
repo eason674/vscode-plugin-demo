@@ -7,7 +7,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import {markdownHtml} from '../common/marked'
+import { markdownHtml } from '../common/marked'
 const props = defineProps({
   item: {
     type: Object,
@@ -32,12 +32,16 @@ const requestHtml = computed(() => {
     /* border-bottom: 1px solid var(--vscode-editorWidget-border); */
   }
   ._text {
+    /* width: fit-content; */
     padding: 5px 10px;
     background: var(--vscode-activityBar-background);
-    text-align: right;
-     border-radius: 5px;
-     /* padding: ; */
-    
+    /* text-align: right; */
+    direction: rtl;
+    text-align: left;
+    border-radius: 5px;
+    display: inline-block;
+    text-align: left;
+    /* padding: ; */
   }
 }
 </style>

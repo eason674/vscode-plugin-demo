@@ -15,6 +15,10 @@
       <a-select :style="{ width: '200px' }" placeholder="请选择模型" v-model="chatStore.currentModel.name" @change="handleChangeModel" >
         <a-option v-for="model in chatStore.modelList">{{model.name}}</a-option>
       </a-select>
+      <div :style="{margin:'0 10px 0 0'}">
+        <icon-send  v-if="!chatStore.waiting.status" :style="{color:inputValue.trim()!==''?'#76ed96':''}"/>
+        <icon-record-stop v-else :style="{ color:chatStore.waiting.status?'#76ed96':''}"></icon-record-stop>
+      </div>
     </div>
   </div>
 </template>
@@ -132,6 +136,9 @@ onUnmounted(() => {
     position: absolute;
     bottom: 0px;
     left: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
   .arco-select-view-single,
   .arco-select-view-single .arco-select-view-suffix {
@@ -139,6 +146,11 @@ onUnmounted(() => {
   }
   .arco-select-dropdown {
     background: var(--vscode-editorWidget-background);
+  }
+
+
+  .active {
+    color: #76ed96;
   }
 }
 </style>
