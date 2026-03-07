@@ -4,6 +4,7 @@ import { currentModel, models } from ".";
 import { mcpClient } from "./modelMcp";
 import { RemoveMessage } from "@langchain/core/messages";
 import { MemorySaver, REMOVE_ALL_MESSAGES } from "@langchain/langgraph";
+import { IModels } from "./types";
 
 export class ModelAgent {
   // agent 实例
@@ -18,14 +19,31 @@ export class ModelAgent {
   private _mcpClient: any;
 
   constructor(initialModelName: string = currentModel) {
+    let newModels = this.initModels(models);
     // 组建模型map
-    this.modelsMap = new Map(models.map((m) => [m.name, m.model]));
+    this.modelsMap = new Map(newModels.map((m) => [m.name, m.model]));
     // 当前模型
     this.currentModelName = initialModelName;
     // 传入初始化好的mcp
     this._mcpClient = mcpClient;
     // 初始化 agent
     this.initAgent();
+  }
+  private initModels(models: IModels[]) {
+    let newModels: any[] = [];
+    models.forEach((model) => {
+      newModels.push({
+        name: model.name,
+        modelName: model.modelName,
+        model: new ChatOpenAI({
+          apiKey: model.apiKey,
+          model: model.modelName,
+          configuration: model.configuration,
+          streaming: this.stream,
+        }),
+      });
+    });
+    return newModels;
   }
 
   private initAgent() {
@@ -73,7 +91,8 @@ export class ModelAgent {
     // 创建 Agent，只需要创建一次
     this._agent = createAgent({
       // 默认模型
-      model: this.modelsMap.get(this.currentModelName) || models[0].model,
+      model:
+        this.modelsMap.get(this.currentModelName) || [...this.modelsMap][0][1],
       tools: this._mcpClient.getAllTools(),
       systemPrompt: "You are a helpful assistant.",
       // 添加中间件
@@ -177,7 +196,9 @@ export class ModelAgent {
    */
   public async invoke(content: string) {
     if (!this._agent) throw new Error("Agent未初始化");
-    console.log(`🤖 使用模型 [${this.currentModelName}] 处理请求...`);
+    console.log(
+      `🤖 使用模型 [${this.currentModelName}] 处理请求...,当前模式-invoke`,
+    );
     const startTime = Date.now();
     try {
       const result = await this._agent.invoke(

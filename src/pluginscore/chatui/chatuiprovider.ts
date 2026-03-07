@@ -100,14 +100,14 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
    */
   public async handleRequest(data: { content: string }) {
     await this.initAgent();
-    let result = await this._agent.request(data.content, this.onChunk.bind(this));
+    let aiContent = await this._agent.request(data.content, this.onChunk.bind(this));
     let model = this._agent.getCurrentModelInfo();
-    if(result) {
+    if(aiContent) {
       // 非流式响应
     this.sendMessageToWebView({
       command: IDETOWEBVIEWREP.CHAT_RESPONSE,
       data: {
-        content: result.content,
+        content: aiContent,
         model: model.currentModel,
         stream: false,
       },
