@@ -33,3 +33,8 @@ Thumbs.db
 
 # 其他待配置文件
 src/modules/indexConfig.ts
+
+# 其他ai助手配置文件
+.codebuddy/*
+.vscode
+.codefree
