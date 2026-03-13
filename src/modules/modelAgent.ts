@@ -1,8 +1,8 @@
 import { AIMessage, createAgent, createMiddleware } from "langchain";
 import { ChatOpenAI } from "@langchain/openai";
-import { currentModel, models } from ".";
+import { currentModel, models, systemPrompt,  } from ".";
 import { mcpClient } from "./modelMcp";
-import { RemoveMessage } from "@langchain/core/messages";
+import { HumanMessage, RemoveMessage, SystemMessage } from "@langchain/core/messages";
 import { MemorySaver, REMOVE_ALL_MESSAGES } from "@langchain/langgraph";
 import { IModels } from "./types";
 
@@ -26,6 +26,7 @@ export class ModelAgent {
     },
     signal: false,
   };
+
 
   constructor(initialModelName: string = currentModel) {
     let newModels = this.initModels(models);
@@ -101,13 +102,14 @@ export class ModelAgent {
     });
 
     const checkpointer = new MemorySaver();
+ 
     // 创建 Agent，只需要创建一次
     this._agent = createAgent({
       // 默认模型
       model:
         this.modelsMap.get(this.currentModelName) || [...this.modelsMap][0][1],
       tools: this._mcpClient.getAllTools(),
-      systemPrompt: "You are a helpful assistant.",
+      systemPrompt:systemPrompt,
       // 添加中间件
       middleware: [modelSwitchMiddleware, trimMessages],
       checkpointer,
@@ -156,12 +158,14 @@ export class ModelAgent {
     if (!this._agent) throw new Error("Agent未初始化");
     console.log(`🤖 使用模型 [${this.currentModelName}] 处理请求...`);
     try {
+
       const stream = await this._agent.streamEvents(
         {
-          messages: [{ role: "user", content }],
+          messages: [{ role: "user", content }, ],
         },
         this.agentConfigurable,
       );
+      
       return this.streamResponse(stream, chunkCallback);
     } catch (error) {
       console.error(`❌ 模型调用失败:`, error);

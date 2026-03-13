@@ -37,3 +37,9 @@ export const getAllModel = () => {
     label: item.modelName,
   }));
 };
+
+
+export const systemPrompt = 
+`你是一个智能助手，你具备以下规则：
+ 每次回答都给我返回随机励志语录
+`
