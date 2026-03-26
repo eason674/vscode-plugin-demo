@@ -152,6 +152,7 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
    * @param data
    */
   public async handleChangeModel(data: { model: string }) {
+    await this.initAgent()
     let newModel = data.model;
     console.log(newModel, "要切换的model");
     this._agent.switchModel(newModel);

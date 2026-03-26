@@ -1,8 +1,12 @@
 import { AIMessage, createAgent, createMiddleware } from "langchain";
 import { ChatOpenAI } from "@langchain/openai";
-import { currentModel, models, systemPrompt,  } from ".";
+import { currentModel, models, systemPrompt } from ".";
 import { mcpClient } from "./modelMcp";
-import { HumanMessage, RemoveMessage, SystemMessage } from "@langchain/core/messages";
+import {
+  HumanMessage,
+  RemoveMessage,
+  SystemMessage,
+} from "@langchain/core/messages";
 import { MemorySaver, REMOVE_ALL_MESSAGES } from "@langchain/langgraph";
 import { IModels } from "./types";
 
@@ -26,7 +30,8 @@ export class ModelAgent {
     },
     signal: false,
   };
-
+  // 当前中间件
+  private middleWareList: any[] = [];
 
   constructor(initialModelName: string = currentModel) {
     let newModels = this.initModels(models);
@@ -40,6 +45,8 @@ export class ModelAgent {
     this.agentController = new AbortController();
     // 配置好 agent 可取消信号
     this.agentConfigurable.signal = this.agentController.signal;
+    // 初始化中间件
+    this.initMiddleware();
     // 初始化 agent
     this.initAgent();
   }
@@ -60,21 +67,8 @@ export class ModelAgent {
     return newModels;
   }
 
-  private initAgent() {
-    // 创建中间件：在每次模型调用前动态选择模型
-    const modelSwitchMiddleware = createMiddleware({
-      name: "ModelSwitchMiddleware",
-      // wrapModelCall 钩子：拦截每次 LLM 调用[citation:7][citation:9]
-      wrapModelCall: async (request, next) => {
-        // 获取当前要使用的模型
-        const model = this.modelsMap.get(this.currentModelName);
-        if (!model) {
-          throw new Error(`模型 ${this.currentModelName} 不存在`);
-        }
-        request.model = model;
-        return next(request);
-      },
-    });
+  // 裁剪k轮会话中间件
+  private trimMessageMiddleWare() {
     // 加载短期记忆中间件-只保持20条最近消息（10轮对话）
     const trimMessages = createMiddleware({
       name: "TrimMessages",
@@ -100,20 +94,48 @@ export class ModelAgent {
         };
       },
     });
+    return trimMessages;
+  }
+  // 模型切换中间件
+  private changeModeliddleWare() {
+    // 创建中间件：在每次模型调用前动态选择模型
+    const modelSwitchMiddleware = createMiddleware({
+      name: "ModelSwitchMiddleware",
+      // wrapModelCall 钩子：拦截每次 LLM 调用[citation:7][citation:9]
+      wrapModelCall: async (request, next) => {
+        // 获取当前要使用的模型
+        const model = this.modelsMap.get(this.currentModelName);
+        if (!model) {
+          throw new Error(`模型 ${this.currentModelName} 不存在`);
+        }
+        request.model = model;
+        return next(request);
+      },
+    });
+    return modelSwitchMiddleware;
+  }
+  // 初始化中间件
+  private initMiddleware() {
+    let trimMessages = this.trimMessageMiddleWare();
+    let changeModelMiddleware = this.changeModeliddleWare();
+    this.middleWareList.push(trimMessages);
+    this.middleWareList.push(changeModelMiddleware);
+  }
 
+  private initAgent() {
     const checkpointer = new MemorySaver();
- 
     // 创建 Agent，只需要创建一次
     this._agent = createAgent({
       // 默认模型
       model:
         this.modelsMap.get(this.currentModelName) || [...this.modelsMap][0][1],
       tools: this._mcpClient.getAllTools(),
-      systemPrompt:systemPrompt,
+      systemPrompt: systemPrompt,
       // 添加中间件
-      middleware: [modelSwitchMiddleware, trimMessages],
+      middleware: this.middleWareList,
       checkpointer,
     });
+    console.log("agent 创建成功！");
   }
 
   /**
@@ -158,14 +180,13 @@ export class ModelAgent {
     if (!this._agent) throw new Error("Agent未初始化");
     console.log(`🤖 使用模型 [${this.currentModelName}] 处理请求...`);
     try {
-
       const stream = await this._agent.streamEvents(
         {
-          messages: [{ role: "user", content }, ],
+          messages: [{ role: "user", content }],
         },
         this.agentConfigurable,
       );
-      
+
       return this.streamResponse(stream, chunkCallback);
     } catch (error) {
       console.error(`❌ 模型调用失败:`, error);
@@ -262,7 +283,6 @@ export class ModelAgent {
   public cancelAgent() {
     this.agentController.abort();
   }
-
 
   /**
    * 获取当前模型信息

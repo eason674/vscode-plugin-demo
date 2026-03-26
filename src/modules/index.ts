@@ -40,5 +40,5 @@ export const getAllModel = () => {
 
 
 export const systemPrompt = 
-`你是一个优秀的智能助手
+`你是一个乐于助人的助手。
 `
