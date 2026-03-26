@@ -25,10 +25,6 @@ const addUserMessage = () => {
 // 键盘enter事件
 export const handleEnter = () => {
   if (inputValue.value.trim() == '') return
-  // 组建用户消息
-  addUserMessage()
-  //   清空输入框消息
-  resetInputOperate()
   //   发送模型
   sendMessage({
     command: webviewReqCommand.CHAT_REQUEST,
@@ -36,4 +32,9 @@ export const handleEnter = () => {
       content: inputValue.value,
     },
   })
+  // 组建用户消息
+  addUserMessage()
+
+  //   清空输入框消息
+  resetInputOperate()
 }

@@ -92,6 +92,7 @@ const responseCommandConfig: Record<ResponseCommandKey, Function> = {
 // ide响应接口消息处理
 const _handleMessage = (event: any) => {
   let { command, data } = event.data
+  console.log('data',data);
   responseCommandConfig[command]?.(data)
 }
 

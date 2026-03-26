@@ -1,6 +1,6 @@
 <template>
   <a-select
-    :style="{ width: '150px' }"
+    :style="{ width: '120px' }"
     placeholder="请选择模型"
     v-model="configStore.currentModel.name"
     @change="handleChangeModel"
