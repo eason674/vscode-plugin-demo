@@ -1,130 +1,144 @@
-// 流氏返回前端使用raf处理
-class OptimizedStreamManager {
-  // UI 更新回调
-  private updateUI: Function
-  // 消息数组（响应式）
-  private messages: any[]
-  // ID 到消息的映射
-  private messagesMap
-  // 流式内容缓存
-  private streamingBuffer
-  // 待更新的消息 ID
-  private pendingUpdates
-  // raf id
-  private rafId: any | null
+// stream-handler.ts
+import type { IMessagesList } from '@/stores/types/chat'
+import type { IChatResponse } from '@/views/types'
 
-  constructor(updateUI: Function) {
-    this.updateUI = updateUI
-    this.messages = []
-    this.messagesMap = new Map()
-    this.streamingBuffer = new Map()
-    this.pendingUpdates = new Set()
-    this.rafId = null
+export class StreamHandler {
+  // 当前是否处于流式返回状态
+  private isStreaming = false
+  // 当前流式消息的index
+  private currentStreamMessageIndex = -1
+  // 是否更新调度
+  private updateScheduled = false
+  // 流式缓冲内容
+  private contentChunks: string[] = []
+  // 缓冲内容
+  private pendingContent: string = ''
+  // 上一次更新时间
+  private lastUpdateTime = 0
+  // 流氏返回处理间隔时间
+  private streamUpdateTime = 50
+  // 消息store
+  private messageStore: any // 根据实际类型调整
+  // 结束回调
+  private resetCallback: () => void
+
+  constructor(messageStore: any, resetCallback: () => void) {
+    this.messageStore = messageStore
+    this.resetCallback = resetCallback
   }
 
-  // 添加消息（一次性）
-  addMessage(role: 'user' | 'ai', content: string, isStreaming = true) {
-    const message = {
-      id: Date.now(),
-      role,
-      content,
-      isStreaming,
-      isComplete: !isStreaming,
+  // 处理流式响应
+  public handleStreamResponse(streamData: IChatResponse) {
+    const { content, stream, isStreamComplete } = streamData
+    // 流氏返回结束
+    if (stream && isStreamComplete) {
+      // 结束时进行更新，防止丢最后一段
+      this.flushUpdate()
+      this.reset()
+      return
     }
 
-    this.messages.push(message)
-    this.messagesMap.set(message.id, message)
-
-    if (isStreaming) {
-      this.streamingBuffer.set(message.id, content)
+    // 如果当前不处于正在流式更新，则需要开启新一轮流式消息接收
+    if (!this.isStreaming) {
+      this.startNewStream(streamData)
     }
 
-    // 触发 UI 更新
-    this.updateUI(this.messages)
+    // 累积等待内容到缓冲区
+    this.pendingContent += content
 
-    return message
-  }
-
-  // 更新流式消息（高频）
-  updateStreaming(messageId:number, chunk:string) {
-    // 1. 累积到缓冲区
-    const current = this.streamingBuffer.get(messageId) || ''
-    const newContent = current + chunk
-    this.streamingBuffer.set(messageId, newContent)
-
-    // 2. 标记需要更新
-    this.pendingUpdates.add(messageId)
-
-    // 3. 批量调度更新
+    // 调度更新
     this.scheduleUpdate()
   }
 
-  scheduleUpdate() {
-    if (this.rafId) return
+  // 调度更新
+  private scheduleUpdate() {
+    // if (this.updateScheduled) return
 
-    this.rafId = requestAnimationFrame(() => {
-      // 批量更新所有待更新的消息
-      for (const messageId of this.pendingUpdates) {
-        const message = this.messagesMap.get(messageId)
-        const newContent = this.streamingBuffer.get(messageId)
+    // this.updateScheduled = true
 
-        if (message && newContent) {
-          // 直接修改消息对象
-          message.content = newContent
-          message.isStreaming = true
-        }
+    // requestAnimationFrame(() => {
+    //   const now = Date.now()
+    //   if (now - this.lastUpdateTime >= this.streamUpdateTime) {
+    //     this.flushUpdate()
+    //   }
+    //   this.updateScheduled = false
+    // })
+    if (!this.updateScheduled) {
+      const now = Date.now()
+      // 采用50ms间隔更新，如果足够，则立即更新ui
+      const timeSinceLastUpdate = now - this.lastUpdateTime
+      if (timeSinceLastUpdate >= this.streamUpdateTime) {
+        this.flushUpdate()
+      } else {
+        this.updateScheduled = true
+        requestAnimationFrame(() => {
+          this.flushUpdate()
+          this.updateScheduled = false
+        })
       }
-
-      // 清空待更新队列
-      this.pendingUpdates.clear()
-
-      // 触发 UI 更新（只更新变化的部分）
-      this.updateUI(this.messages)
-
-      this.rafId = null
-    })
-  }
-
-  // 完成流式消息
-  completeStreaming(messageId:number) {
-    const message = this.messagesMap.get(messageId)
-    if (message) {
-      message.isStreaming = false
-      message.isComplete = true
-      this.streamingBuffer.delete(messageId)
-      // 最终更新
-      this.updateUI(this.messages)
     }
   }
+
+  // 开始新的流式传输
+  private startNewStream(streamData: IChatResponse) {
+    //  初始化 chunk
+    this.contentChunks = []
+    // 正在流式接收返回
+    this.isStreaming = true
+    // 构建模型流式返回消息
+    const newMessage: IMessagesList = {
+      role: 'ai',
+      content: '',
+      model: streamData.model,
+    }
+    this.messageStore.messagesList.push(newMessage)
+    // 当前流式消息index指向
+    this.currentStreamMessageIndex = this.messageStore.messagesList.length - 1
+  }
+
+  // 执行更新
+  private flushUpdate() {
+    // 存在当前需要流式更新的消息index并且存在流式缓冲内容时
+    if (this.currentStreamMessageIndex >= 0 && this.pendingContent) {
+      const newList = [...this.messageStore.messagesList]
+      // 找到需要流式更新内容的消息
+      const currentMessage = newList[this.currentStreamMessageIndex]
+      //  收集 chunk（避免字符串频繁拼接）
+      this.contentChunks.push(this.pendingContent)
+
+      if (currentMessage) {
+        // 一次性 join
+        currentMessage.content = this.contentChunks.join('')
+      }
+      // -------本次更新完成---------
+      // 本次更新完成后清空缓冲内容以及记录当前时间
+      this.pendingContent = ''
+      this.lastUpdateTime = Date.now()
+    }
+  }
+
+  // 重置状态
+  private reset() {
+    this.updateScheduled = false
+    this.pendingContent = ''
+    this.lastUpdateTime = 0
+    this.isStreaming = false
+    this.currentStreamMessageIndex = -1
+    this.contentChunks = []
+    this.resetCallback()
+  }
+
+  // 强制结束流式传输
+  public forceEnd() {
+    this.flushUpdate()
+    this.isStreaming = false
+    this.currentStreamMessageIndex = -1
+    this.pendingContent = ''
+    this.contentChunks = []
+  }
+
+  // 获取当前状态
+  public getIsStreaming() {
+    return this.isStreaming
+  }
 }
-
-// // Vue 3 使用示例
-// import { shallowRef, triggerRef } from 'vue'
-
-// const messages = shallowRef([])
-
-// const manager = new OptimizedChatManager((newMessages) => {
-//   // 只更新数组引用，不深度遍历
-//   messages.value = newMessages
-// })
-
-// // 接收流式数据
-// let currentMessageId = null
-
-// function onStreamStart() {
-//   const msg = manager.addMessage('assistant', '', true)
-//   currentMessageId = msg.id
-// }
-
-// function onStreamChunk(chunk) {
-//   if (currentMessageId) {
-//     manager.updateStreaming(currentMessageId, chunk)
-//   }
-// }
-
-// function onStreamEnd() {
-//   if (currentMessageId) {
-//     manager.completeStreaming(currentMessageId)
-//     currentMessageId = null
-//   }
-// }

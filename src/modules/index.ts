@@ -40,6 +40,5 @@ export const getAllModel = () => {
 
 
 export const systemPrompt = 
-`你是一个智能助手，你具备以下规则：
- 每次回答都给我返回随机励志语录
+`你是一个优秀的智能助手
 `

@@ -11,129 +11,29 @@ import ChatInput from './ChatInput/index.vue'
 import ChatMessages from './ChatMessages.vue'
 import { onMounted, onUnmounted } from 'vue'
 import type { IMessagesList } from '@/stores/types/chat'
-import type { IAgentRequestEndResponse, ICancelAgentResponse, IChatResponse, ResponseCommandKey } from './types'
+import type {
+  ICancelAgentResponse,
+  IChatResponse,
+  ResponseCommandKey,
+} from './types'
 import { Message } from '@arco-design/web-vue'
 import { useConfigStore } from '@/stores/config'
 import { ideResCommand } from '@/common/commandname'
+import { StreamHandler } from '@/common/streamResponse'
 
 const chatStore = useChatStore()
-const configStore=useConfigStore()
+const configStore = useConfigStore()
 
-
-
+// 结束对话
 const reset = () => {
   chatStore.updateWaiting(false)
 }
 
-// 处理流式数据块
-let isStreaming = false
-let currentStreamMessageIndex = -1
-// // 处理流式响应
-// const streamResponse = (data: IChatResponse) => {
-//   console.log('webview处理流式', data)
-//   const { content, model, stream, isStreamComplete } = data
-//   if (stream && isStreamComplete) {
-//     reset()
-//     isStreaming = false
-//     currentStreamMessageIndex = -1
-//     return
-//   }
-
-//   // 如果是流式传输的开始，创建新消息并执行reset
-//   if (!isStreaming) {
-//     isStreaming = true
-
-//     // 创建新的消息对象用于流式显示
-//     const newMessage: IMessagesList = {
-//       role: 'ai',
-//       content: '',
-//       model: model,
-//     }
-//     chatStore.messagesList.push(newMessage)
-//     currentStreamMessageIndex = chatStore.messagesList.length - 1
-//   }
-
-//   // 更新当前流式消息的内容
-//   if (currentStreamMessageIndex >= 0) {
-//     const currentMessage = chatStore.messagesList[currentStreamMessageIndex]
-//     if (currentMessage) {
-//       currentMessage.content += content
-
-//       // 通过替换数组中的元素来触发响应式更新
-//       chatStore.messagesList[currentStreamMessageIndex] = { ...currentMessage }
-//     }
-//   }
-// }
-// 原代码的优化版本
-let updateScheduled = false
-let pendingContent = ''
-let lastUpdateTime = 0
-
-const streamResponse = (data: IChatResponse) => {
-  console.log('webview处理流式', data)
-  const { content, model, stream, isStreamComplete } = data
-  
-  if (stream && isStreamComplete) {
-    reset()
-    resetOperate()
-    isStreaming = false
-    currentStreamMessageIndex = -1
-    pendingContent = ''
-    return
-  }
-
-  if (!isStreaming) {
-    isStreaming = true
-    const newMessage: IMessagesList = {
-      role: 'ai',
-      content: '',
-      model: model,
-    }
-     chatStore.messagesList.push(newMessage)
-    currentStreamMessageIndex = chatStore.messagesList.length - 1
-  }
-
-  // 累积到缓冲区
-  pendingContent += content
-  
-  // 调度更新
-  if (!updateScheduled) {
-    const now = Date.now()
-    const timeSinceLastUpdate = now - lastUpdateTime
-    
-    if (timeSinceLastUpdate >= 50) {
-      // 立即更新
-      flushUpdate()
-    } else {
-      // 延迟到下一帧
-      updateScheduled = true
-      requestAnimationFrame(() => {
-        flushUpdate()
-        updateScheduled = false
-      })
-    }
-  }
-}
-
-function flushUpdate() {
-  if (currentStreamMessageIndex >= 0 && pendingContent) {
-    const newList = [...chatStore.messagesList]
-    const currentMessage = newList[currentStreamMessageIndex]
-    
-    if (currentMessage) {
-      currentMessage.content += pendingContent
-    }
-    
-    pendingContent = ''
-    lastUpdateTime = Date.now()
-  }
-}
-
-function resetOperate() {
-  updateScheduled = false
-  pendingContent = ''
-  lastUpdateTime = 0
-}
+// 流氏响应handler
+const streamHandler = new StreamHandler(chatStore, () => {
+  console.log('流氏响应结束')
+  reset()
+})
 
 // 处理非流式响应
 const invokeResponse = (data: IChatResponse) => {
@@ -166,7 +66,7 @@ const invokeResponse = (data: IChatResponse) => {
 const chatResponse = (data: IChatResponse) => {
   const { stream } = data
   !stream && reset()
-  stream ? streamResponse(data) : invokeResponse(data)
+  stream ? streamHandler.handleStreamResponse(data) : invokeResponse(data)
 }
 
 // 模型取消返回
@@ -175,13 +75,6 @@ const cancelResponse = (data: ICancelAgentResponse) => {
   if (isCancel) {
     Message.success(message)
   }
-}
-
-// 本轮对话已经结束
-const agentRequestEndResponse = (data: IAgentRequestEndResponse) => {
-  reset()
-  isStreaming = false
-  currentStreamMessageIndex = -1
 }
 
 // ide返回响应处理
@@ -193,7 +86,7 @@ const responseCommandConfig: Record<ResponseCommandKey, Function> = {
   // 取消聊天响应
   [ideResCommand.CANCEL_RESPONSE]: cancelResponse,
   // 聊天本轮会话结束
-  [ideResCommand.CHAT_REQUEST_END_RESPONSE]: agentRequestEndResponse,
+  // [ideResCommand.CHAT_REQUEST_END_RESPONSE]: agentRequestEndResponse,
 }
 
 // ide响应接口消息处理
