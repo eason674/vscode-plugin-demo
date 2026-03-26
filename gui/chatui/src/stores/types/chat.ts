@@ -13,18 +13,11 @@ export interface IMessagesList {
 export interface IChat {
   // 聊天对话消息list
   messagesList: IMessagesList[]
-  // 当前模型
-  currentModel: {
-    name: string
-  }
+ 
   // 模型对话中等待状态
   waiting: {
     status: boolean
     text: string
   }
-  //  当前可用模型列表
-  modelList: {
-    name: string
-    label: string
-  }[]
+  
 }

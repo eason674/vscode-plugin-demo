@@ -9,22 +9,18 @@
 import { useChatStore } from '@/stores/chat'
 import ChatInput from './ChatInput/index.vue'
 import ChatMessages from './ChatMessages.vue'
-import { sendMessage } from '@/common/vscode'
-import { webviewReqCommand } from '@/common/commandname'
-import { onMounted, onUnmounted, triggerRef } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import type { IMessagesList } from '@/stores/types/chat'
-import type { IAgentRequestEndResponse, ICancelAgentResponse, IChatResponse } from './types'
+import type { IAgentRequestEndResponse, ICancelAgentResponse, IChatResponse, ResponseCommandKey } from './types'
 import { Message } from '@arco-design/web-vue'
 import { useConfigStore } from '@/stores/config'
+import { ideResCommand } from '@/common/commandname'
+
 const chatStore = useChatStore()
 const configStore=useConfigStore()
 
 
 
-const configResponse = (data: any) => {
-  configStore.currentModel.name = data.currentModel
-  configStore.addModelList(data.modelList)
-}
 const reset = () => {
   chatStore.updateWaiting(false)
 }
@@ -138,6 +134,7 @@ function resetOperate() {
   pendingContent = ''
   lastUpdateTime = 0
 }
+
 // 处理非流式响应
 const invokeResponse = (data: IChatResponse) => {
   // 创建一个新的消息对象用于打字机效果
@@ -186,23 +183,30 @@ const agentRequestEndResponse = (data: IAgentRequestEndResponse) => {
   isStreaming = false
   currentStreamMessageIndex = -1
 }
-const responseCommandConfig: any = {
-  'chat-response': chatResponse,
-  'config-response': configResponse,
-  'cancel-agent-response': cancelResponse,
-  'agent-request-end-response': agentRequestEndResponse,
+
+// ide返回响应处理
+const responseCommandConfig: Record<ResponseCommandKey, Function> = {
+  // 聊天响应
+  [ideResCommand.CHAT_RESPONSE]: chatResponse,
+  // 配置响应
+  [ideResCommand.CONFIG_RESPONSE]: configStore.setConfig,
+  // 取消聊天响应
+  [ideResCommand.CANCEL_RESPONSE]: cancelResponse,
+  // 聊天本轮会话结束
+  [ideResCommand.CHAT_REQUEST_END_RESPONSE]: agentRequestEndResponse,
 }
 
-const handleMessage = (event: any) => {
+// ide响应接口消息处理
+const _handleMessage = (event: any) => {
   let { command, data } = event.data
-  console.log(command, 'command',data, 'data')
   responseCommandConfig[command]?.(data)
 }
+
 onMounted(() => {
-  window.addEventListener('message', handleMessage)
+  window.addEventListener('message', _handleMessage)
 })
 onUnmounted(() => {
-  window.removeEventListener('message', handleMessage)
+  window.removeEventListener('message', _handleMessage)
 })
 </script>
 

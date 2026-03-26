@@ -11,6 +11,6 @@ export const IDETOWEBVIEWREP = {
   CHAT_RESPONSE: "chat-response",
   CHANGE_MODEL_RESPONSE: "change-model-response",
   CONFIG_RESPONSE: "config-response",
-  CANCEL_AGENT_RESPONSE: "cancel-agent-response",
+  CANCEL_RESPONSE: "cancel-response",
   AGENT_REQUEST_END_RESPONSE: "agent-request-end-response",
 };

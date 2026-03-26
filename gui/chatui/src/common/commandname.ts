@@ -10,5 +10,6 @@ export const ideResCommand = {
   CHAT_RESPONSE: 'chat-response',
   CHANGE_MODEL_RESPONSE: 'change-model-response',
   CONFIG_RESPONSE: 'config-response',
-  CANCEL_AGENT_RESPONSE: 'cancel-agent-response',
+  CANCEL_RESPONSE: 'cancel-response',
+  CHAT_REQUEST_END_RESPONSE: 'chat-request-end-response',
 }

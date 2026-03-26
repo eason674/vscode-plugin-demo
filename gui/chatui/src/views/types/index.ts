@@ -1,3 +1,5 @@
+import type { ideResCommand } from "@/common/commandname"
+
 export interface IChatResponse {
   content: string
   model: string
@@ -19,3 +21,7 @@ export  interface ICancelAgentResponse {
   model: string
   message: string
 }
+
+
+// export type ResponseCommandKey = keyof typeof    ideResCommand;
+export type ResponseCommandKey = typeof ideResCommand[keyof typeof ideResCommand];

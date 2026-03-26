@@ -130,7 +130,7 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
     await this._agent.cancelAgent();
     // 取消成功通知webview
     this.sendMessageToWebView({
-      command: IDETOWEBVIEWREP.CANCEL_AGENT_RESPONSE,
+      command: IDETOWEBVIEWREP.CANCEL_RESPONSE,
       data: {
         isCancel: true,
         model: this._agent.getCurrentModelInfo().currentModel,

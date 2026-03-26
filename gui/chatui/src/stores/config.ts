@@ -1,25 +1,26 @@
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { IChat } from './types/chat'
+import type { IConfig, IProjectConfig } from './types/config'
 
 // 聊天store
 export const useConfigStore = defineStore('config', () => {
   // 当前模型
-  const currentModel = ref<IChat['currentModel']>({
+  const currentModel = reactive<IConfig['currentModel']>({
     name: '',
   })
- 
+
   // 模型列表
-  const modelList = ref<IChat['modelList']>([])
+  const modelList = reactive<IConfig['modelList']>([])
 
-  const addModelList = (models: IChat['modelList']) => {
-    modelList.value.push(...models)
+  const setConfig = (config:IProjectConfig) => {
+    const { currentModel:newCurrentModel, modelList:newModelList} = config
+    currentModel.name=newCurrentModel
+    modelList.push(...newModelList)
   }
-
 
   return {
     currentModel,
     modelList,
-    addModelList,
+    setConfig
   }
 })
