@@ -1,8 +1,8 @@
 <template>
   <div class="chat-messages-contaier"  ref="messageContainerRef">
     <template v-if="chatStore.messagesList.length">
-      <template v-for="item in messagesList">
-        <UserMessage :item="item" v-if="item.role == 'user'"></UserMessage>
+      <template v-for="(item,idx) in messagesList" :key="item.id || idx">
+        <UserMessage :item="item" v-if="item.role == 'user'" ></UserMessage>
         <ModelMessage v-if="item.role == 'ai'" :item="item"></ModelMessage>
       </template>
     </template>

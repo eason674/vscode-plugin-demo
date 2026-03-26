@@ -37,22 +37,62 @@ const reset = () => {
 // 处理流式数据块
 let isStreaming = false
 let currentStreamMessageIndex = -1
-// 处理流式响应
+// // 处理流式响应
+// const streamResponse = (data: IChatResponse) => {
+//   console.log('webview处理流式', data)
+//   const { content, model, stream, isStreamComplete } = data
+//   if (stream && isStreamComplete) {
+//     reset()
+//     isStreaming = false
+//     currentStreamMessageIndex = -1
+//     return
+//   }
+
+//   // 如果是流式传输的开始，创建新消息并执行reset
+//   if (!isStreaming) {
+//     isStreaming = true
+
+//     // 创建新的消息对象用于流式显示
+//     const newMessage: IMessagesList = {
+//       role: 'ai',
+//       content: '',
+//       model: model,
+//     }
+//     chatStore.messagesList.push(newMessage)
+//     currentStreamMessageIndex = chatStore.messagesList.length - 1
+//   }
+
+//   // 更新当前流式消息的内容
+//   if (currentStreamMessageIndex >= 0) {
+//     const currentMessage = chatStore.messagesList[currentStreamMessageIndex]
+//     if (currentMessage) {
+//       currentMessage.content += content
+
+//       // 通过替换数组中的元素来触发响应式更新
+//       chatStore.messagesList[currentStreamMessageIndex] = { ...currentMessage }
+//     }
+//   }
+// }
+// 原代码的优化版本
+let updateScheduled = false
+let pendingContent = ''
+let lastUpdateTime = 0
+
 const streamResponse = (data: IChatResponse) => {
-  console.log('webview处理流式',data);
+  console.log('webview处理流式', data)
   const { content, model, stream, isStreamComplete } = data
+  
   if (stream && isStreamComplete) {
-     reset() 
+    reset()
+    resetOperate()
     isStreaming = false
     currentStreamMessageIndex = -1
+    pendingContent = ''
     return
   }
 
-  // 如果是流式传输的开始，创建新消息并执行reset
   if (!isStreaming) {
     isStreaming = true
-   
-    // 创建新的消息对象用于流式显示
     const newMessage: IMessagesList = {
       role: 'ai',
       content: '',
@@ -62,15 +102,48 @@ const streamResponse = (data: IChatResponse) => {
     currentStreamMessageIndex = chatStore.messagesList.length - 1
   }
 
-  // 更新当前流式消息的内容
-  if (currentStreamMessageIndex >= 0) {
-    const currentMessage = chatStore.messagesList[currentStreamMessageIndex]
-    if (currentMessage) {
-      currentMessage.content += content
-      // 通过替换数组中的元素来触发响应式更新
-      chatStore.messagesList[currentStreamMessageIndex] = { ...currentMessage }
+  // 累积到缓冲区
+  pendingContent += content
+  
+  // 调度更新
+  if (!updateScheduled) {
+    const now = Date.now()
+    const timeSinceLastUpdate = now - lastUpdateTime
+    
+    if (timeSinceLastUpdate >= 50) {
+      // 立即更新
+      flushUpdate()
+    } else {
+      // 延迟到下一帧
+      updateScheduled = true
+      requestAnimationFrame(() => {
+        flushUpdate()
+        updateScheduled = false
+      })
     }
   }
+}
+
+function flushUpdate() {
+  if (currentStreamMessageIndex >= 0 && pendingContent) {
+    const currentMessage = chatStore.messagesList[currentStreamMessageIndex]
+    if (currentMessage) {
+      // 关键改动：直接修改内容，不创建新对象
+      currentMessage.content += pendingContent
+      // 只触发数组更新，不替换消息对象
+      // 如果你的框架需要，可以这样：
+      // chatStore.messagesList = [...chatStore.messagesList]
+    }
+    
+    pendingContent = ''
+    lastUpdateTime = Date.now()
+  }
+}
+
+function resetOperate() {
+  updateScheduled = false
+  pendingContent = ''
+  lastUpdateTime = 0
 }
 // 处理非流式响应
 const invokeResponse = (data: IChatResponse) => {
@@ -107,15 +180,15 @@ const chatResponse = (data: IChatResponse) => {
 }
 
 // 模型取消返回
-const cancelResponse=(data:ICancelAgentResponse)=>{
-  const {isCancel,message}=data;
-  if(isCancel) {
-     Message.success(message)
+const cancelResponse = (data: ICancelAgentResponse) => {
+  const { isCancel, message } = data
+  if (isCancel) {
+    Message.success(message)
   }
 }
 
 // 本轮对话已经结束
-const agentRequestEndResponse=(data:IAgentRequestEndResponse)=>{
+const agentRequestEndResponse = (data: IAgentRequestEndResponse) => {
   reset()
   isStreaming = false
   currentStreamMessageIndex = -1

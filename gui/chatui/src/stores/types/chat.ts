@@ -1,5 +1,6 @@
 // 聊天对话消息
 export interface IMessagesList {
+  id?:number,
   // 消息角色
   role: 'user' | 'ai'
   //   消息内容

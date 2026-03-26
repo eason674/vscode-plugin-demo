@@ -49,6 +49,7 @@ const emits = defineEmits(['enter'])
 // 添加用户信息
 const pushMessages = () => {
   chatStore.pushMessages({
+    id: Date.now(),
     role: 'user',
     content: inputValue.value,
   })
