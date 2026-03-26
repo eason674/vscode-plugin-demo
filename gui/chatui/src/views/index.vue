@@ -1,34 +1,29 @@
 <template>
   <div class="chat-container">
     <ChatMessages></ChatMessages>
-    <ChatInput @enter="chatRequest"></ChatInput>
+    <ChatInput></ChatInput>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useChatStore } from '@/stores/chat'
-import ChatInput from './ChatInput.vue'
+import ChatInput from './ChatInput/index.vue'
 import ChatMessages from './ChatMessages.vue'
 import { sendMessage } from '@/common/vscode'
 import { webviewReqCommand } from '@/common/commandname'
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, triggerRef } from 'vue'
 import type { IMessagesList } from '@/stores/types/chat'
 import type { IAgentRequestEndResponse, ICancelAgentResponse, IChatResponse } from './types'
 import { Message } from '@arco-design/web-vue'
+import { useConfigStore } from '@/stores/config'
 const chatStore = useChatStore()
+const configStore=useConfigStore()
 
-const chatRequest = (content: string) => {
-  sendMessage({
-    command: webviewReqCommand.CHAT_REQUEST,
-    data: {
-      content,
-    },
-  })
-}
+
 
 const configResponse = (data: any) => {
-  chatStore.currentModel.name = data.currentModel
-  chatStore.pushModelList(data.modelList)
+  configStore.currentModel.name = data.currentModel
+  configStore.addModelList(data.modelList)
 }
 const reset = () => {
   chatStore.updateWaiting(false)
@@ -98,7 +93,7 @@ const streamResponse = (data: IChatResponse) => {
       content: '',
       model: model,
     }
-    chatStore.messagesList.push(newMessage)
+     chatStore.messagesList.push(newMessage)
     currentStreamMessageIndex = chatStore.messagesList.length - 1
   }
 
@@ -126,13 +121,11 @@ const streamResponse = (data: IChatResponse) => {
 
 function flushUpdate() {
   if (currentStreamMessageIndex >= 0 && pendingContent) {
-    const currentMessage = chatStore.messagesList[currentStreamMessageIndex]
+    const newList = [...chatStore.messagesList]
+    const currentMessage = newList[currentStreamMessageIndex]
+    
     if (currentMessage) {
-      // 关键改动：直接修改内容，不创建新对象
       currentMessage.content += pendingContent
-      // 只触发数组更新，不替换消息对象
-      // 如果你的框架需要，可以这样：
-      // chatStore.messagesList = [...chatStore.messagesList]
     }
     
     pendingContent = ''
@@ -202,8 +195,7 @@ const responseCommandConfig: any = {
 
 const handleMessage = (event: any) => {
   let { command, data } = event.data
-  console.log(command, 'command')
-  console.log(data, 'data')
+  console.log(command, 'command',data, 'data')
   responseCommandConfig[command]?.(data)
 }
 onMounted(() => {
