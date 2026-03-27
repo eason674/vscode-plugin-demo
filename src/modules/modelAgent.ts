@@ -1,4 +1,9 @@
-import { AIMessage, createAgent, createMiddleware } from "langchain";
+import {
+  AIMessage,
+  createAgent,
+  createMiddleware,
+  summarizationMiddleware,
+} from "langchain";
 import { ChatOpenAI } from "@langchain/openai";
 import { currentModel, models, systemPrompt } from ".";
 import { mcpClient } from "./modelMcp";
@@ -96,6 +101,15 @@ export class ModelAgent {
     });
     return trimMessages;
   }
+  // summarization 升级版本中间件
+  private summarizationMiddleWare() {
+    const summMiddleWare = summarizationMiddleware({
+      model: this.modelsMap.get(this.currentModelName) || '',// 当前模型
+      trigger: { tokens: 2000, messages: 3 }, // 触发条件
+      keep: { messages: 20 },// 消息保持多少条
+    });
+    return summMiddleWare;
+  }
   // 模型切换中间件
   private changeModeliddleWare() {
     // 创建中间件：在每次模型调用前动态选择模型
@@ -116,9 +130,11 @@ export class ModelAgent {
   }
   // 初始化中间件
   private initMiddleware() {
-    let trimMessages = this.trimMessageMiddleWare();
+    // let trimMessages = this.trimMessageMiddleWare();
     let changeModelMiddleware = this.changeModeliddleWare();
-    this.middleWareList.push(trimMessages);
+    let summarizationMiddleWare=this.summarizationMiddleWare();
+    // this.middleWareList.push(trimMessages);
+    this.middleWareList.push(summarizationMiddleWare);
     this.middleWareList.push(changeModelMiddleware);
   }
 
