@@ -34,6 +34,12 @@ export class StreamHandler {
     if (stream && isStreamComplete) {
       // 结束时进行更新，防止丢最后一段
       this.flushUpdate()
+      // 找到需要流式更新内容的消息
+      const currentMessage = this.messageStore.messagesList[this.currentStreamMessageIndex]
+      if (currentMessage) {
+        // 一次性 join
+        currentMessage.isStreamComplete = true
+      }
       this.reset()
       return
     }
@@ -89,6 +95,7 @@ export class StreamHandler {
     const newMessage: IMessagesList = {
       role: 'ai',
       content: '',
+      isStreamComplete: streamData.isStreamComplete,
       model: streamData.model,
     }
     this.messageStore.messagesList.push(newMessage)
