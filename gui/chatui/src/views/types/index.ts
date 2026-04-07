@@ -9,6 +9,14 @@ export interface IChatResponse {
   isStreamComplete: boolean
   // 是否流式返回
   stream: boolean
+  // 事件类型：text-文本流, tool_start-工具开始, tool_end-工具结束, complete-完成
+  eventType?: 'text' | 'tool_start' | 'tool_end' | 'complete'
+  // 工具名称（当事件类型为 tool_start 或 tool_end 时）
+  toolName?: string
+  // 工具输入参数（当事件类型为 tool_start 时）
+  toolInput?: any
+  // 工具执行结果（当事件类型为 tool_end 时）
+  toolResult?: any
 }
 
 

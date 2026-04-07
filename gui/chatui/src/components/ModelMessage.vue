@@ -1,6 +1,13 @@
 <template>
   <div class="model-message-container">
     <div class="title">模型：{{ item.model }}</div>
+    
+    <!-- 工具执行展示 -->
+    <ToolExecution 
+      v-if="item.toolExecutions && item.toolExecutions.length > 0"
+      :toolExecutions="item.toolExecutions"
+    />
+    
     <div class="_text" v-html="responseHtml"></div>
     <Toolbar @copy="handleCopy" v-show="item.isStreamComplete" />
   </div>
@@ -9,6 +16,7 @@
 <script setup>
 import { computed,ref } from 'vue'
 import Toolbar from './Toolbar.vue'
+import ToolExecution from './ToolExecution.vue'
 import { markdownHtml } from '../common/marked'
 import { Message } from '@arco-design/web-vue'
 

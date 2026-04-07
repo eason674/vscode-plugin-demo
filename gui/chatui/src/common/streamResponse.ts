@@ -1,5 +1,5 @@
 // stream-handler.ts
-import type { IMessagesList } from '@/stores/types/chat'
+import type { IMessagesList, IToolExecution } from '@/stores/types/chat'
 import type { IChatResponse } from '@/views/types'
 
 export class StreamHandler {
@@ -29,7 +29,8 @@ export class StreamHandler {
 
   // 处理流式响应
   public handleStreamResponse(streamData: IChatResponse) {
-    const { content, stream, isStreamComplete } = streamData
+    const { content, stream, isStreamComplete, eventType, toolName, toolInput, toolResult } = streamData
+    
     // 流氏返回结束
     if (stream && isStreamComplete) {
       // 结束时进行更新，防止丢最后一段
@@ -44,6 +45,18 @@ export class StreamHandler {
       return
     }
 
+    // 处理工具开始事件
+    if (eventType === 'tool_start') {
+      this.handleToolStart(toolName, toolInput)
+      return
+    }
+
+    // 处理工具结束事件
+    if (eventType === 'tool_end') {
+      this.handleToolEnd(toolName, toolResult)
+      return
+    }
+
     // 如果当前不处于正在流式更新，则需要开启新一轮流式消息接收
     if (!this.isStreaming) {
       this.startNewStream(streamData)
@@ -54,6 +67,64 @@ export class StreamHandler {
 
     // 调度更新
     this.scheduleUpdate()
+  }
+
+  // 处理工具开始执行
+  private handleToolStart(toolName?: string, toolInput?: any) {
+    if (!toolName) return
+    
+    // 确保有当前消息
+    if (this.currentStreamMessageIndex < 0) {
+      this.startNewStream({ 
+        content: '', 
+        model: 'system', 
+        stream: true, 
+        isStreamComplete: false,
+        eventType: 'tool_start'
+      })
+    }
+    
+    const currentMessage = this.messageStore.messagesList[this.currentStreamMessageIndex]
+    if (currentMessage) {
+      // 初始化工具执行列表
+      if (!currentMessage.toolExecutions) {
+        currentMessage.toolExecutions = []
+      }
+      
+      // 添加工具执行记录
+      const toolExecution: IToolExecution = {
+        toolName,
+        toolInput,
+        status: 'running',
+        timestamp: Date.now()
+      }
+      currentMessage.toolExecutions.push(toolExecution)
+      
+      // 触发响应式更新
+      this.messageStore.messagesList[this.currentStreamMessageIndex] = { ...currentMessage }
+    }
+  }
+
+  // 处理工具执行完成
+  private handleToolEnd(toolName?: string, toolResult?: any) {
+    if (!toolName) return
+    
+    const currentMessage = this.messageStore.messagesList[this.currentStreamMessageIndex]
+    if (currentMessage && currentMessage.toolExecutions) {
+      // 找到对应的工具执行记录并更新状态
+      const toolExec = currentMessage.toolExecutions.find(
+        (exec: IToolExecution) => exec.toolName === toolName && exec.status === 'running'
+      )
+      
+      if (toolExec) {
+        toolExec.status = 'completed'
+        toolExec.toolResult = toolResult
+        toolExec.timestamp = Date.now()
+        
+        // 触发响应式更新
+        this.messageStore.messagesList[this.currentStreamMessageIndex] = { ...currentMessage }
+      }
+    }
   }
 
   // 调度更新
@@ -97,6 +168,7 @@ export class StreamHandler {
       content: '',
       isStreamComplete: streamData.isStreamComplete,
       model: streamData.model,
+      toolExecutions: [],
     }
     this.messageStore.messagesList.push(newMessage)
     // 当前流式消息index指向

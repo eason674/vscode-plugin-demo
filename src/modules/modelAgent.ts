@@ -4,7 +4,7 @@ import {
   createMiddleware,
   summarizationMiddleware,
 } from "langchain";
-import { ChatOpenAI } from "@langchain/openai";
+import { ChatOpenAI, tools } from "@langchain/openai";
 import { currentModel, models, systemPrompt } from ".";
 import { mcpClient } from "./modelMcp";
 import {
@@ -104,9 +104,9 @@ export class ModelAgent {
   // summarization 升级版本中间件
   private summarizationMiddleWare() {
     const summMiddleWare = summarizationMiddleware({
-      model: this.modelsMap.get(this.currentModelName) || '',// 当前模型
+      model: this.modelsMap.get(this.currentModelName) || "", // 当前模型
       trigger: { tokens: 2000, messages: 3 }, // 触发条件
-      keep: { messages: 20 },// 消息保持多少条
+      keep: { messages: 20 }, // 消息保持多少条
     });
     return summMiddleWare;
   }
@@ -132,7 +132,7 @@ export class ModelAgent {
   private initMiddleware() {
     // let trimMessages = this.trimMessageMiddleWare();
     let changeModelMiddleware = this.changeModeliddleWare();
-    let summarizationMiddleWare=this.summarizationMiddleWare();
+    let summarizationMiddleWare = this.summarizationMiddleWare();
     // this.middleWareList.push(trimMessages);
     this.middleWareList.push(summarizationMiddleWare);
     this.middleWareList.push(changeModelMiddleware);
@@ -140,12 +140,26 @@ export class ModelAgent {
 
   private initAgent() {
     const checkpointer = new MemorySaver();
+    // 测试自定义tool
+    const customTool = [
+      {
+        type: "function",
+        function: {
+          name: "get_currentTime",
+          description: "获取当前时间",
+          parameters: {
+            type: "object",
+          },
+        },
+      },
+    ];
+
     // 创建 Agent，只需要创建一次
     this._agent = createAgent({
       // 默认模型
       model:
         this.modelsMap.get(this.currentModelName) || [...this.modelsMap][0][1],
-      tools: this._mcpClient.getAllTools(),
+      tools: [...this._mcpClient.getAllTools(), ...customTool],
       systemPrompt: systemPrompt,
       // 添加中间件
       middleware: this.middleWareList,
@@ -225,7 +239,31 @@ export class ModelAgent {
       // 区分流式返回与其他工具返回
       switch (event.event) {
         case "on_chat_model_stream":
+          // 模型返回原始conenttent
           const content = event.data?.chunk?.content;
+          // 是否有自定义tools_calls返回
+          let tools_calls = event.data?.chunk?.tool_calls;
+          let hasToolsCalls = tools_calls && tools_calls.length > 0;
+
+          if (hasToolsCalls) {
+            console.log("tools_calss 流式输出", event.data?.chunk?.tool_calls);
+            let toolsResults = await this.handleToolsCalls(tools_calls);
+            toolsResults.forEach((toolRes: any) => {
+              let toolName = toolRes.toolName;
+              if (chunkCallback) {
+                chunkCallback({
+                  content: toolRes.toolResult,
+                  model: this.currentModelName,
+                  stream: true,
+                  eventType: "text",
+                  toolName: toolName,
+                });
+              }
+            });
+
+            return;
+          }
+
           if (content) {
             fullResponse += content;
             // console.log("流式输出", content);
@@ -234,10 +272,49 @@ export class ModelAgent {
                 content: content,
                 model: this.currentModelName,
                 stream: true,
+                eventType: "text",
               });
             }
           }
           break;
+
+        case "on_tool_start":
+          // 工具开始执行
+          const toolName = event.name || event.data?.input?.name || "unknown";
+          const toolInput = event.data?.input;
+          console.log(`🔧 工具开始执行: ${toolName}`, toolInput);
+          if (chunkCallback) {
+            chunkCallback({
+              eventType: "tool_start",
+              toolName: toolName,
+              toolInput: toolInput,
+              model: this.currentModelName,
+              stream: true,
+            });
+          }
+          break;
+
+        case "on_tool_end":
+          // 工具执行结束
+          const toolResult = event.data?.output;
+          const endedToolName = event.name || "unknown";
+          console.log(`✅ 工具执行完成: ${endedToolName}`, toolResult);
+          if (chunkCallback) {
+            chunkCallback({
+              eventType: "tool_end",
+              toolName: endedToolName,
+              toolResult: toolResult,
+              model: this.currentModelName,
+              stream: true,
+            });
+          }
+          break;
+
+        case "on_chain_end":
+          // 链执行结束（可能包含工具的中间结果）
+          console.log("链执行结束", event.data?.output);
+          break;
+
         case "on_chat_model_end":
           // console.log("流式返回结束", event);
           // // 流氏返回结束
@@ -250,6 +327,8 @@ export class ModelAgent {
           // }
           break;
         default:
+          // 记录其他事件类型以便调试
+          // console.log("未处理的事件类型:", event.event);
           break;
       }
     }
@@ -258,8 +337,31 @@ export class ModelAgent {
         onComplete: true,
         content: fullResponse,
         stream: this.stream,
+        eventType: "complete",
       });
     }
+  }
+
+  public async handleToolsCalls(tools_calls: any[]): Promise<any> {
+    console.log("tools_calls 流式输出", tools_calls);
+    const toolsRegistry: Record<string, () => string> = {
+      get_currentTime: () => new Date().toLocaleString(),
+    };
+    let toolResults = await Promise.all(
+      tools_calls.map((item: any) => {
+        const toolName = item.name || item.function?.name;
+        let toolFunc = toolsRegistry[toolName];
+        if (toolFunc && typeof toolFunc === "function") {
+          const result = toolFunc();
+          return {
+            toolName: toolName,
+            toolResult: result,
+          };
+        }
+        return null;
+      }),
+    );
+    return toolResults;
   }
 
   /**

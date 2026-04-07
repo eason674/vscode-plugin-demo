@@ -1,3 +1,17 @@
+// 工具执行信息
+export interface IToolExecution {
+  // 工具名称
+  toolName: string
+  // 工具输入
+  toolInput?: any
+  // 工具输出结果
+  toolResult?: any
+  // 执行状态：running-执行中, completed-已完成, error-错误
+  status: 'running' | 'completed' | 'error'
+  // 执行时间戳
+  timestamp: number
+}
+
 // 聊天对话消息
 export interface IMessagesList {
   id?:number,
@@ -9,6 +23,8 @@ export interface IMessagesList {
   model?: string
   // 是否流式返回完成
   isStreamComplete?:boolean
+  // 工具执行列表（可选）
+  toolExecutions?: IToolExecution[]
 }
 
 // 对话所有状态

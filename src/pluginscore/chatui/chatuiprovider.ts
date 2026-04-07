@@ -202,6 +202,7 @@ export class ChatUiProvider implements vscode.WebviewViewProvider {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="${styleUri}" crossorigin rel="stylesheet">
         <title>vscode plugin demo</title>
+        
       </head>
       <body>
         <div id="app"></div>
