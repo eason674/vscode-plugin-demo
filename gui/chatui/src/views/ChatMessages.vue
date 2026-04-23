@@ -6,6 +6,7 @@
         <ModelMessage v-if="item.role == 'ai'" :item="item"></ModelMessage>
       </template>
     </template>
+    <!-- index changelog -->
     <template v-else>
       <IndexChangeLog></IndexChangeLog>
     </template>

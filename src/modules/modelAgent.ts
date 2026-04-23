@@ -3,10 +3,12 @@ import {
   createAgent,
   createMiddleware,
   summarizationMiddleware,
+  tool,
 } from "langchain";
 import { ChatOpenAI, tools } from "@langchain/openai";
 import { currentModel, models, systemPrompt } from ".";
 import { mcpClient } from "./modelMcp";
+import * as z from "zod";
 import {
   HumanMessage,
   RemoveMessage,
@@ -140,31 +142,27 @@ export class ModelAgent {
 
   private initAgent() {
     const checkpointer = new MemorySaver();
-    // 测试自定义tool
-    const customTool = [
-      {
-        type: "function",
-        function: {
-          name: "get_currentTime",
-          description: "获取当前时间",
-          parameters: {
-            type: "object",
-          },
-        },
-      },
-    ];
+    // 测试自定义tool--getWeather
+    const getWeather = tool((input) => `It's rain in ${input.location}.`, {
+      name: "get_weather",
+      description: "Get the weather at a location.",
+      schema: z.object({
+        location: z.string().describe("The location to get the weather for"),
+      }),
+    });
+
+    let currentModel=this.modelsMap.get(this.currentModelName) || [...this.modelsMap][0][1];
 
     // 创建 Agent，只需要创建一次
     this._agent = createAgent({
       // 默认模型
-      model:
-        this.modelsMap.get(this.currentModelName) || [...this.modelsMap][0][1],
-      tools: [...this._mcpClient.getAllTools(), ...customTool],
+      model:currentModel,
+      tools: [...this._mcpClient.getAllTools(), getWeather],
       systemPrompt: systemPrompt,
       // 添加中间件
       middleware: this.middleWareList,
       checkpointer,
-    });
+    })
     console.log("agent 创建成功！");
   }
 
@@ -245,24 +243,24 @@ export class ModelAgent {
           let tools_calls = event.data?.chunk?.tool_calls;
           let hasToolsCalls = tools_calls && tools_calls.length > 0;
 
-          if (hasToolsCalls) {
-            console.log("tools_calss 流式输出", event.data?.chunk?.tool_calls);
-            let toolsResults = await this.handleToolsCalls(tools_calls);
-            toolsResults.forEach((toolRes: any) => {
-              let toolName = toolRes.toolName;
-              if (chunkCallback) {
-                chunkCallback({
-                  content: toolRes.toolResult,
-                  model: this.currentModelName,
-                  stream: true,
-                  eventType: "text",
-                  toolName: toolName,
-                });
-              }
-            });
+          // if (hasToolsCalls) {
+          //   console.log("tools_calss 流式输出", event.data?.chunk?.tool_calls);
+          //   let toolsResults = await this.handleToolsCalls(tools_calls);
+          //   toolsResults.forEach((toolRes: any) => {
+          //     let toolName = toolRes.toolName;
+          //     if (chunkCallback) {
+          //       chunkCallback({
+          //         content: toolRes.toolResult,
+          //         model: this.currentModelName,
+          //         stream: true,
+          //         eventType: "text",
+          //         toolName: toolName,
+          //       });
+          //     }
+          //   });
 
-            return;
-          }
+          //   return;
+          // }
 
           if (content) {
             fullResponse += content;

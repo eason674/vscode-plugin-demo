@@ -1,5 +1,5 @@
 <template>
-  <div class="index-change-log">(｡♥‿♥｡) hello~~</div>
+  <div class="index-change-log">vscode plugin demo</div>
 </template>
 
 <script setup></script>
